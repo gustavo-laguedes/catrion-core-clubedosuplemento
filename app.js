@@ -1193,9 +1193,9 @@ async function sendAdminFirstAccess(userId) {
       throw new Error("O link de primeiro acesso não foi retornado.");
     }
 
-    window.open(actionLink, "_blank");
+    await navigator.clipboard.writeText(actionLink);
 
-    setAdminUsersFeedback("Link de primeiro acesso gerado com sucesso.", "success");
+    setAdminUsersFeedback("Link de primeiro acesso copiado com sucesso. Agora é só enviar ao usuário.", "success");
   } catch (err) {
     console.error("[ADMIN USERS] erro ao gerar primeiro acesso:", err);
     setAdminUsersFeedback(err?.message || "Não foi possível gerar o primeiro acesso.");
