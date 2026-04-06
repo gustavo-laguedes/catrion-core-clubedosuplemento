@@ -17,15 +17,27 @@ window.coreRouterInstance = router;
       console.log("[CORE] active tenant after bootstrap:", window.CoreAuth?.getActiveTenantId?.());
     }
 
-    if (isLogged) {
-      const user = window.CoreAuth.getCurrentUser();
-      updateUserUI(user);
+   if (isLogged) {
+  const authUser = window.CoreAuth.getCurrentUser();
+  const profile = await loadCurrentProfileFromDatabase();
 
-      setActiveSidebar("home");
-      router.render("home");
-    } else {
-      router.render("login");
-    }
+  const mergedUser = {
+    ...authUser,
+    name: profile?.full_name || authUser?.name || authUser?.email || "Usuário",
+    full_name: profile?.full_name || authUser?.full_name || "",
+    email: profile?.email || authUser?.email || "",
+    role: profile?.role || authUser?.role || "USER",
+    avatar_path: profile?.avatar_path || "",
+    avatarUrl: profile?.avatar_path || ""
+  };
+
+  updateUserUI(mergedUser);
+
+  setActiveSidebar("home");
+  router.render("home");
+} else {
+  router.render("login");
+}
   } catch (e) {
     console.warn("CoreAuth.bootstrap falhou:", e);
     router.render("login");
@@ -2221,6 +2233,24 @@ async function saveProfile() {
       btnProfileSave.textContent = "Salvar alterações";
     }
   }
+}
+
+async function loadCurrentProfileFromDatabase() {
+  const authUser = window.CoreAuth?.getCurrentUser?.();
+  if (!authUser?.id || !window.sb) return null;
+
+  const { data, error } = await window.sb
+    .from("profiles")
+    .select("id, full_name, email, role, avatar_path, status")
+    .eq("id", authUser.id)
+    .maybeSingle();
+
+  if (error) {
+    console.error("[PROFILE] erro ao carregar perfil atual:", error);
+    return null;
+  }
+
+  return data || null;
 }
 
 function updateUserUI(user) {
