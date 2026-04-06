@@ -1,0 +1,136 @@
+.fa-page{
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:32px 20px;
+  background:linear-gradient(135deg, #071225 0%, #0b1730 42%, #12274f 100%);
+}
+
+.fa-card{
+  width:min(100%, 520px);
+  background:rgba(255,255,255,.96);
+  border-radius:28px;
+  padding:28px;
+  box-shadow:0 30px 80px rgba(2,12,20,.34);
+  display:grid;
+  gap:16px;
+}
+
+.fa-head{
+  text-align:center;
+}
+
+.fa-logo{
+  height:40px;
+  display:block;
+  margin:0 auto 12px;
+}
+
+.fa-head h1{
+  margin:0;
+  font-size:30px;
+  font-weight:950;
+  color:#0f172a;
+}
+
+.fa-head p{
+  margin:8px 0 0;
+  font-size:13px;
+  font-weight:800;
+  color:#64748b;
+}
+
+.fa-avatar-block{
+  display:grid;
+  justify-items:center;
+  gap:10px;
+  margin-bottom:4px;
+}
+
+.fa-avatar-preview{
+  width:96px;
+  height:96px;
+  border-radius:24px;
+  overflow:hidden;
+  display:grid;
+  place-items:center;
+  background:linear-gradient(135deg, #1d4ed8, #60a5fa);
+  color:#fff;
+  font-weight:950;
+}
+
+.fa-avatar-preview img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
+}
+
+.fa-field{
+  display:grid;
+  gap:8px;
+}
+
+.fa-field label{
+  font-size:12px;
+  font-weight:900;
+  color:#475569;
+}
+
+.fa-field input{
+  width:100%;
+  height:48px;
+  border-radius:16px;
+  border:1px solid rgba(15,23,42,.12);
+  background:#f8fafc;
+  padding:0 14px;
+  font-size:14px;
+  font-weight:800;
+  color:#0f172a;
+  outline:none;
+}
+
+.fa-field input[readonly]{
+  opacity:.82;
+  cursor:not-allowed;
+}
+
+.fa-btn{
+  min-height:48px;
+  border-radius:16px;
+  font-size:14px;
+  font-weight:950;
+  cursor:pointer;
+}
+
+.fa-btn-primary{
+  border:0;
+  color:#fff;
+  background:linear-gradient(135deg, #2563eb, #3b82f6);
+}
+
+.fa-btn-ghost{
+  border:1px solid rgba(15,23,42,.12);
+  background:#fff;
+  color:#0f172a;
+}
+
+#faFeedback{
+  padding:12px 14px;
+  border-radius:14px;
+  font-size:13px;
+  font-weight:900;
+}
+
+.fa-feedback-success{
+  background:rgba(34,197,94,.12);
+  color:#166534;
+  border:1px solid rgba(34,197,94,.18);
+}
+
+.fa-feedback-error{
+  background:rgba(239,68,68,.10);
+  color:#b91c1c;
+  border:1px solid rgba(239,68,68,.18);
+}

@@ -1,0 +1,112 @@
+<section class="today-shell">
+  <header class="today-head">
+    <div>
+      <h1 class="today-title">Painel do dia</h1>
+      <p class="today-subtitle">Tudo que importa hoje, sem perfumaria cósmica.</p>
+    </div>
+
+    <div class="today-badge" id="todayDateBadge">—</div>
+  </header>
+
+  <section class="today-kpis three-kpis">
+  <article class="today-kpi">
+    <div class="today-kpi-label">Faturamento hoje</div>
+    <div class="today-kpi-value" id="kpiRevenue">R$ 0,00</div>
+    <div class="today-kpi-meta">Total vendido no dia</div>
+  </article>
+
+  <article class="today-kpi">
+    <div class="today-kpi-label">Clientes atendidos</div>
+    <div class="today-kpi-value" id="kpiCustomersCount">0</div>
+    <div class="today-kpi-meta">Clientes que compraram hoje</div>
+  </article>
+
+  <article class="today-kpi today-kpi--cancelled">
+    <div class="today-kpi-label">Vendas canceladas</div>
+    <div class="today-kpi-value" id="kpiCancelledSalesCount">0</div>
+    <div class="today-kpi-meta">Quantidade cancelada hoje</div>
+  </article>
+</section>
+
+  <section class="today-main-grid">
+    <article class="today-card chart-card">
+      <div class="section-head">
+        <div>
+          <h2 class="section-title">Saída de produtos hoje</h2>
+          <p class="section-subtitle">Participação por quantidade vendida</p>
+        </div>
+      </div>
+
+      <div class="section-divider"></div>
+
+      <div class="chart-wrap">
+        <div class="donut-area">
+          <div class="donut-chart" id="salesDonutChart">
+            <div class="donut-center">
+              <strong id="donutCenterValue">0</strong>
+              <span>itens</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="chart-legend" id="salesLegend">
+          <div class="empty-state-inline">Nenhuma saída de produto hoje.</div>
+        </div>
+      </div>
+    </article>
+
+    <article class="today-card customers-mini-card">
+      <div class="section-head">
+        <div>
+          <h2 class="section-title">Clientes que compraram hoje</h2>
+          <p class="section-subtitle">Lista compacta dos clientes do dia</p>
+        </div>
+      </div>
+
+      <div class="section-divider"></div>
+
+      <div class="customer-list mini-customer-list" id="customersTodayList">
+        <div class="empty-state">
+          <div class="empty-state-title">Nenhum cliente encontrado hoje</div>
+          <div class="empty-state-text">Assim que houver vendas com cliente vinculado, eles aparecem aqui.</div>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <section class="today-alerts-grid">
+    <article class="today-card stock-card">
+      <div class="section-head section-head--space">
+        <div>
+          <h2 class="section-title">Estoque</h2>
+          <p class="section-subtitle" id="stockAlertSummary">Nenhum alerta no momento</p>
+        </div>
+
+        <div class="alert-total-badge" id="stockAlertsBadge">0</div>
+      </div>
+
+      <div class="section-divider"></div>
+
+      <div class="alert-list" id="stockAlertsList">
+        <div class="empty-state-inline">Nenhum alerta de estoque.</div>
+      </div>
+    </article>
+
+    <article class="today-card payables-card">
+      <div class="section-head section-head--space">
+        <div>
+          <h2 class="section-title">Contas a pagar</h2>
+          <p class="section-subtitle" id="payablesAlertSummary">Nenhum vencimento próximo</p>
+        </div>
+
+        <div class="alert-total-badge" id="payablesAlertsBadge">0</div>
+      </div>
+
+      <div class="section-divider"></div>
+
+      <div class="alert-list" id="payablesAlertsList">
+        <div class="empty-state-inline">Nenhuma conta crítica no momento.</div>
+      </div>
+    </article>
+  </section>
+</section>

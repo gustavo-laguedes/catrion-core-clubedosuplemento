@@ -1,0 +1,54 @@
+<div class="login-page">
+  <div class="login-page__bg"></div>
+
+  <section class="login-panel">
+    <div class="login-brand">
+      <img src="assets/core-topbar1.png" alt="Core" class="login-brand__logo">
+    </div>
+
+    <div class="login-card">
+      <div class="login-card__head">
+        <h1 class="login-card__title">Entrar no sistema</h1>
+        <p class="login-card__subtitle">Acesse o Core do Clube do Suplemento</p>
+      </div>
+
+      <div class="login-form">
+        <div class="login-field">
+          <label for="loginEmail" class="login-field__label">E-mail</label>
+          <input
+            id="loginEmail"
+            class="login-field__input"
+            type="email"
+            placeholder="Digite seu e-mail"
+            autocomplete="username"
+          />
+        </div>
+
+        <div class="login-field">
+          <label for="loginPassword" class="login-field__label">Senha</label>
+          <input
+            id="loginPassword"
+            class="login-field__input"
+            type="password"
+            placeholder="Digite sua senha"
+            autocomplete="current-password"
+          />
+        </div>
+
+        <button id="btnLogin" class="login-btn login-btn--primary" type="button">
+          Entrar
+        </button>
+
+        <div id="loginError" class="login-error hidden">
+          Usuário ou senha inválidos.
+        </div>
+      </div>
+    </div>
+
+    <div class="login-admin-bar">
+      <button id="btnAdminArea" class="login-btn login-btn--ghost" type="button">
+        Área administrativa
+      </button>
+    </div>
+  </section>
+</div>
