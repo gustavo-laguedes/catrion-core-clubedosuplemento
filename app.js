@@ -2021,6 +2021,10 @@ if (btnProfileCancel) {
   btnProfileCancel.addEventListener("click", closeProfileModal);
 }
 
+if (btnProfileSave) {
+  btnProfileSave.addEventListener("click", saveProfile);
+}
+
 if (profileOverlay) {
   profileOverlay.addEventListener("click", (e) => {
     if (e.target === profileOverlay) {
@@ -2066,15 +2070,160 @@ if (btnProfileRemoveAvatar) {
   });
 }
 
+async function uploadProfileAvatar(file, userId) {
+  if (!file || !userId) return null;
+
+  const ext = String(file.name.split(".").pop() || "jpg").toLowerCase();
+  const filePath = `${userId}/avatar-${Date.now()}.${ext}`;
+
+  const { error: uploadError } = await window.sb.storage
+    .from("user-avatars")
+    .upload(filePath, file, {
+      upsert: true
+    });
+
+  if (uploadError) {
+    throw new Error(uploadError.message || "Não foi possível enviar a foto.");
+  }
+
+  const { data } = window.sb.storage
+    .from("user-avatars")
+    .getPublicUrl(filePath);
+
+  return data?.publicUrl || null;
+}
+
+async function saveProfile() {
+  const user = window.CoreAuth?.getCurrentUser?.();
+  const sb = window.sb;
+
+  if (!user || !sb) {
+    setProfileFeedback("Sessão não encontrada.");
+    return;
+  }
+
+  const fullName = String(profileFullName?.value || "").trim();
+  const email = String(profileEmail?.value || "").trim().toLowerCase();
+  const password = String(profilePassword?.value || "").trim();
+  const passwordConfirm = String(profilePasswordConfirm?.value || "").trim();
+
+  if (!fullName) {
+    setProfileFeedback("Digite seu nome completo.");
+    return;
+  }
+
+  if (!email) {
+    setProfileFeedback("Digite seu e-mail.");
+    return;
+  }
+
+  if (password || passwordConfirm) {
+    if (password.length < 6) {
+      setProfileFeedback("A nova senha precisa ter pelo menos 6 caracteres.");
+      return;
+    }
+
+    if (password !== passwordConfirm) {
+      setProfileFeedback("A confirmação da senha não confere.");
+      return;
+    }
+  }
+
+  const oldEmail = String(user.email || "").trim().toLowerCase();
+  const authChanged = isAuthChangeRequired({
+    oldEmail,
+    newEmail: email,
+    password
+  });
+
+  try {
+    setProfileFeedback("");
+
+    if (btnProfileSave) {
+      btnProfileSave.disabled = true;
+      btnProfileSave.textContent = "Salvando...";
+    }
+
+    let avatarUrl = currentProfileAvatarUrl || "";
+
+    if (profileAvatarFile) {
+      avatarUrl = await uploadProfileAvatar(profileAvatarFile, user.id);
+    }
+
+    const { error: profileError } = await sb
+      .from("profiles")
+      .update({
+        full_name: fullName,
+        email,
+        avatar_path: avatarUrl || null,
+        updated_at: new Date().toISOString()
+      })
+      .eq("id", user.id);
+
+    if (profileError) {
+      throw new Error(profileError.message || "Não foi possível atualizar o perfil.");
+    }
+
+    if (authChanged) {
+      const payload = { email };
+
+      if (password) {
+        payload.password = password;
+      }
+
+      const { error: authError } = await sb.auth.updateUser(payload);
+
+      if (authError) {
+        throw new Error(authError.message || "Não foi possível atualizar os dados de acesso.");
+      }
+    }
+
+    const nextUser = {
+      ...user,
+      name: fullName,
+      full_name: fullName,
+      email,
+      avatar_path: avatarUrl || null,
+      avatarUrl: avatarUrl || null
+    };
+
+    updateUserUI(nextUser);
+
+    if (authChanged) {
+      setProfileFeedback(
+        "Dados de acesso alterados com sucesso. Você será deslogado para entrar novamente.",
+        "success"
+      );
+
+      setTimeout(async () => {
+        await window.sb.auth.signOut();
+        localStorage.removeItem("core_session_v3");
+        window.location.href = "index.html";
+      }, 1400);
+
+      return;
+    }
+
+    currentProfileAvatarUrl = avatarUrl || "";
+    profileAvatarFile = null;
+
+    if (profileAvatarInput) {
+      profileAvatarInput.value = "";
+    }
+
+    setProfileFeedback("Perfil atualizado com sucesso.", "success");
+  } catch (err) {
+    console.error("[PROFILE] erro ao salvar perfil:", err);
+    setProfileFeedback(err?.message || "Não foi possível salvar o perfil.");
+  } finally {
+    if (btnProfileSave) {
+      btnProfileSave.disabled = false;
+      btnProfileSave.textContent = "Salvar alterações";
+    }
+  }
+}
+
 function updateUserUI(user) {
-  const el = document.getElementById("userHello");
-  if (!el || !user) return;
-
-  const name = user.name || user.email || "Usuário";
-  const role = user.role || "USER";
-
-  el.textContent = `Olá, ${name} (${role})`;
-}function updateUserUI(user) {
   const el = document.getElementById("userHello");
   if (!el || !user) return;
 
