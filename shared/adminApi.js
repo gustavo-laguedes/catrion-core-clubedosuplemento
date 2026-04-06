@@ -11,11 +11,11 @@
     }
 
     return {
-  ...BASE_HEADERS,
-  "x-core-admin-auth": "true",
-  "apikey": window.ENV.SUPABASE_ANON_KEY,
-  "Authorization": `Bearer ${window.ENV.SUPABASE_ANON_KEY}`
-};
+      ...BASE_HEADERS,
+      "x-core-admin-auth": "true",
+      "apikey": window.ENV.SUPABASE_ANON_KEY,
+      "Authorization": `Bearer ${window.ENV.SUPABASE_ANON_KEY}`
+    };
   }
 
   async function callFn(name, body = {}) {
@@ -47,12 +47,18 @@
     return callFn("admin-create-user", { email, role });
   }
 
-  async function updateUser({ user_id, full_name, email, role, status }) {
+  async function updateUser({ user_id, full_name, email, role }) {
     return callFn("admin-update-user", {
       user_id,
       full_name,
       email,
-      role,
+      role
+    });
+  }
+
+  async function toggleUserStatus({ user_id, status }) {
+    return callFn("admin-toggle-user-status", {
+      user_id,
       status
     });
   }
@@ -66,15 +72,16 @@
   }
 
   async function sendFirstAccess({ user_id }) {
-  return callFn("admin-send-first-access", { user_id });
-}
+    return callFn("admin-send-first-access", { user_id });
+  }
 
   window.AdminApi = {
-  listUsers,
-  createUser,
-  updateUser,
-  deleteUser,
-  sendReset,
-  sendFirstAccess
-};
+    listUsers,
+    createUser,
+    updateUser,
+    toggleUserStatus,
+    deleteUser,
+    sendReset,
+    sendFirstAccess
+  };
 })();

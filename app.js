@@ -103,8 +103,30 @@ const adminUserFormFeedback = document.getElementById("adminUserFormFeedback");
 
 const adminUserId = document.getElementById("adminUserId");
 const adminUserEmail = document.getElementById("adminUserEmail");
+const adminUserFullName = document.getElementById("adminUserFullName");
 
 const adminUserRole = document.getElementById("adminUserRole");
+
+const btnProfileTrigger = document.getElementById("btnProfileTrigger");
+const profileOverlay = document.getElementById("profileOverlay");
+const btnProfileClose = document.getElementById("btnProfileClose");
+const btnProfileCancel = document.getElementById("btnProfileCancel");
+const btnProfileSave = document.getElementById("btnProfileSave");
+
+const topbarUserAvatar = document.getElementById("topbarUserAvatar");
+const profileAvatarPreview = document.getElementById("profileAvatarPreview");
+const profileAvatarInput = document.getElementById("profileAvatarInput");
+const btnProfileChooseAvatar = document.getElementById("btnProfileChooseAvatar");
+const btnProfileRemoveAvatar = document.getElementById("btnProfileRemoveAvatar");
+
+const profileFullName = document.getElementById("profileFullName");
+const profileEmail = document.getElementById("profileEmail");
+const profilePassword = document.getElementById("profilePassword");
+const profilePasswordConfirm = document.getElementById("profilePasswordConfirm");
+const profileFeedback = document.getElementById("profileFeedback");
+
+let profileAvatarFile = null;
+let currentProfileAvatarUrl = "";
 
 
 const configMachines = document.getElementById("machinesSection");
@@ -1007,6 +1029,7 @@ function setAdminUserFormFeedback(message = "", type = "error") {
 function clearAdminUserForm() {
   if (adminUserId) adminUserId.value = "";
   if (adminUserEmail) adminUserEmail.value = "";
+  if (adminUserFullName) adminUserFullName.value = "";
   if (adminUserRole) adminUserRole.value = "OPER";
 
   setAdminUserFormFeedback("");
@@ -1014,6 +1037,42 @@ function clearAdminUserForm() {
   if (btnAdminUserSendReset) {
     btnAdminUserSendReset.style.display = "none";
   }
+}
+
+function getAdminUserById(userId) {
+  return adminUsersCache.find((user) => String(user.id) === String(userId)) || null;
+}
+
+function openAdminUserEditForm(userId) {
+  const user = getAdminUserById(userId);
+  if (!user) {
+    setAdminUsersFeedback("Usuário não encontrado.");
+    return;
+  }
+
+  clearAdminUserForm();
+
+  if (adminUserId) adminUserId.value = user.id || "";
+  if (adminUserEmail) adminUserEmail.value = user.email || "";
+  if (adminUserFullName) adminUserFullName.value = user.full_name || "";
+  if (adminUserRole) adminUserRole.value = String(user.role || "OPER").toUpperCase();
+
+  if (adminUserFormTitle) adminUserFormTitle.textContent = "Editar usuário";
+  if (adminUserFormSubtitle) adminUserFormSubtitle.textContent = "Atualize os dados e permissões do usuário";
+
+  if (adminUserEmail) adminUserEmail.disabled = false;
+
+  if (btnAdminUserSendReset) {
+    btnAdminUserSendReset.style.display = "inline-flex";
+  }
+
+  if (adminUserFormOverlay) {
+    adminUserFormOverlay.classList.remove("core-hidden");
+  }
+}
+
+function isEditingAdminUser() {
+  return !!String(adminUserId?.value || "").trim();
 }
 
 function openAdminUserCreateForm() {
@@ -1035,12 +1094,16 @@ function closeAdminUserForm() {
 }
 
 async function saveAdminUser() {
-  if (!window.AdminApi?.createUser) {
+  const isEditing = isEditingAdminUser();
+
+  if (!window.AdminApi?.createUser || !window.AdminApi?.updateUser) {
     setAdminUserFormFeedback("AdminApi não carregada.");
     return;
   }
 
+  const userId = String(adminUserId?.value || "").trim();
   const email = String(adminUserEmail?.value || "").trim().toLowerCase();
+  const fullName = String(adminUserFullName?.value || "").trim();
   const role = String(adminUserRole?.value || "").trim().toUpperCase();
 
   if (!email) {
@@ -1055,9 +1118,24 @@ async function saveAdminUser() {
 
   try {
     setAdminUserFormFeedback("");
+
     if (btnAdminUserFormSave) {
       btnAdminUserFormSave.disabled = true;
-      btnAdminUserFormSave.textContent = "Salvando...";
+      btnAdminUserFormSave.textContent = isEditing ? "Salvando alterações..." : "Salvando...";
+    }
+
+    if (isEditing) {
+      await window.AdminApi.updateUser({
+        user_id: userId,
+        full_name: fullName || null,
+        email,
+        role
+      });
+
+      closeAdminUserForm();
+      await loadAdminUsers();
+      setAdminUsersFeedback("Usuário atualizado com sucesso.", "success");
+      return;
     }
 
     await window.AdminApi.createUser({ email, role });
@@ -1067,8 +1145,8 @@ async function saveAdminUser() {
 
     setAdminUsersFeedback("Usuário criado e e-mail de primeiro acesso enviado.", "success");
   } catch (err) {
-    console.error("[ADMIN USERS] erro ao criar usuário:", err);
-    setAdminUserFormFeedback(err?.message || "Não foi possível criar o usuário.");
+    console.error("[ADMIN USERS] erro ao salvar usuário:", err);
+    setAdminUserFormFeedback(err?.message || "Não foi possível salvar o usuário.");
   } finally {
     if (btnAdminUserFormSave) {
       btnAdminUserFormSave.disabled = false;
@@ -1114,6 +1192,109 @@ async function sendAdminFirstAccess(userId) {
     if (actionBtn) {
       actionBtn.disabled = false;
       actionBtn.textContent = "Primeiro acesso";
+    }
+  }
+}
+
+async function toggleAdminUserStatus(userId) {
+  if (!window.AdminApi?.toggleUserStatus) {
+    setAdminUsersFeedback("AdminApi não carregada.");
+    return;
+  }
+
+  const user = getAdminUserById(userId);
+  if (!user) {
+    setAdminUsersFeedback("Usuário não encontrado.");
+    return;
+  }
+
+  const currentStatus = String(user.status || "active").toLowerCase();
+  const nextStatus = currentStatus === "blocked" ? "active" : "blocked";
+
+  const confirmMessage =
+    nextStatus === "blocked"
+      ? "Deseja bloquear este usuário?"
+      : "Deseja desbloquear este usuário?";
+
+  const confirmed = window.confirm(confirmMessage);
+  if (!confirmed) return;
+
+  const actionBtn = adminUsersList?.querySelector(
+    `[data-action="toggle-status"][data-user-id="${userId}"]`
+  );
+
+  try {
+    setAdminUsersFeedback("");
+
+    if (actionBtn) {
+      actionBtn.disabled = true;
+      actionBtn.textContent = nextStatus === "blocked" ? "Bloqueando..." : "Desbloqueando...";
+    }
+
+    await window.AdminApi.toggleUserStatus({
+      user_id: userId,
+      status: nextStatus
+    });
+
+    await loadAdminUsers();
+
+    setAdminUsersFeedback(
+      nextStatus === "blocked"
+        ? "Usuário bloqueado com sucesso."
+        : "Usuário desbloqueado com sucesso.",
+      "success"
+    );
+  } catch (err) {
+    console.error("[ADMIN USERS] erro ao alterar status:", err);
+    setAdminUsersFeedback(err?.message || "Não foi possível alterar o status do usuário.");
+  } finally {
+    if (actionBtn) {
+      actionBtn.disabled = false;
+      actionBtn.textContent = nextStatus === "blocked" ? "Bloquear" : "Desbloquear";
+    }
+  }
+}
+
+async function deleteAdminUser(userId) {
+  if (!window.AdminApi?.deleteUser) {
+    setAdminUsersFeedback("AdminApi não carregada.");
+    return;
+  }
+
+  const user = getAdminUserById(userId);
+  if (!user) {
+    setAdminUsersFeedback("Usuário não encontrado.");
+    return;
+  }
+
+  const label = user.full_name || user.email || "este usuário";
+  const confirmed = window.confirm(`Deseja excluir ${label}? Essa ação não pode ser desfeita.`);
+  if (!confirmed) return;
+
+  const actionBtn = adminUsersList?.querySelector(
+    `[data-action="delete"][data-user-id="${userId}"]`
+  );
+
+  try {
+    setAdminUsersFeedback("");
+
+    if (actionBtn) {
+      actionBtn.disabled = true;
+      actionBtn.textContent = "Excluindo...";
+    }
+
+    await window.AdminApi.deleteUser({ user_id: userId });
+
+    await loadAdminUsers();
+
+    setAdminUsersFeedback("Usuário excluído com sucesso.", "success");
+  } catch (err) {
+    console.error("[ADMIN USERS] erro ao excluir usuário:", err);
+    setAdminUsersFeedback(err?.message || "Não foi possível excluir o usuário.");
+  } finally {
+    if (actionBtn) {
+      actionBtn.disabled = false;
+      actionBtn.textContent = "Excluir";
     }
   }
 }
@@ -1178,9 +1359,23 @@ if (adminUsersList) {
 
     if (!action || !userId) return;
 
+    if (action === "edit") {
+      openAdminUserEditForm(userId);
+      return;
+    }
+
+    if (action === "toggle-status") {
+      await toggleAdminUserStatus(userId);
+      return;
+    }
+
     if (action === "first-access") {
       await sendAdminFirstAccess(userId);
       return;
+    }
+
+    if (action === "delete") {
+      await deleteAdminUser(userId);
     }
   });
 }
@@ -1747,6 +1942,130 @@ window.CoreChat = {
   refreshBadge: chatRefreshBadge
 };
 
+function setProfileFeedback(message = "", type = "error") {
+  if (!profileFeedback) return;
+
+  if (!message) {
+    profileFeedback.textContent = "";
+    profileFeedback.className = "admin-users-feedback hidden";
+    return;
+  }
+
+  profileFeedback.textContent = message;
+  profileFeedback.className = `admin-users-feedback admin-users-feedback--${type}`;
+}
+
+function getUserInitial(nameOrEmail = "") {
+  return String(nameOrEmail || "U").trim().charAt(0).toUpperCase() || "U";
+}
+
+function renderAvatarTarget(el, { name = "", avatarUrl = "" } = {}) {
+  if (!el) return;
+
+  if (avatarUrl) {
+    el.innerHTML = `<img src="${avatarUrl}" alt="Avatar">`;
+    return;
+  }
+
+  el.textContent = getUserInitial(name);
+}
+
+function openProfileModal() {
+  if (!profileOverlay) return;
+
+  const user = window.CoreAuth?.getCurrentUser?.();
+  if (!user) return;
+
+  profileAvatarFile = null;
+  currentProfileAvatarUrl = user.avatarUrl || user.avatar_path || "";
+
+  if (profileFullName) {
+    profileFullName.value = user.name || user.full_name || "";
+  }
+
+  if (profileEmail) {
+    profileEmail.value = user.email || "";
+  }
+
+  if (profilePassword) profilePassword.value = "";
+  if (profilePasswordConfirm) profilePasswordConfirm.value = "";
+
+  renderAvatarTarget(profileAvatarPreview, {
+    name: user.name || user.email || "Usuário",
+    avatarUrl: currentProfileAvatarUrl
+  });
+
+  setProfileFeedback("");
+  profileOverlay.classList.remove("core-hidden");
+}
+
+function closeProfileModal() {
+  if (!profileOverlay) return;
+  profileOverlay.classList.add("core-hidden");
+}
+
+function isAuthChangeRequired({ oldEmail, newEmail, password }) {
+  return String(oldEmail || "").trim().toLowerCase() !== String(newEmail || "").trim().toLowerCase()
+    || !!String(password || "").trim();
+}
+
+if (btnProfileTrigger) {
+  btnProfileTrigger.addEventListener("click", openProfileModal);
+}
+
+if (btnProfileClose) {
+  btnProfileClose.addEventListener("click", closeProfileModal);
+}
+
+if (btnProfileCancel) {
+  btnProfileCancel.addEventListener("click", closeProfileModal);
+}
+
+if (profileOverlay) {
+  profileOverlay.addEventListener("click", (e) => {
+    if (e.target === profileOverlay) {
+      closeProfileModal();
+    }
+  });
+}
+
+if (btnProfileChooseAvatar && profileAvatarInput) {
+  btnProfileChooseAvatar.addEventListener("click", () => {
+    profileAvatarInput.click();
+  });
+}
+
+if (profileAvatarInput) {
+  profileAvatarInput.addEventListener("change", () => {
+    const file = profileAvatarInput.files?.[0] || null;
+    profileAvatarFile = file;
+
+    if (!file) return;
+
+    const localUrl = URL.createObjectURL(file);
+    renderAvatarTarget(profileAvatarPreview, {
+      name: profileFullName?.value || profileEmail?.value || "Usuário",
+      avatarUrl: localUrl
+    });
+  });
+}
+
+if (btnProfileRemoveAvatar) {
+  btnProfileRemoveAvatar.addEventListener("click", () => {
+    profileAvatarFile = null;
+    currentProfileAvatarUrl = "";
+
+    if (profileAvatarInput) {
+      profileAvatarInput.value = "";
+    }
+
+    renderAvatarTarget(profileAvatarPreview, {
+      name: profileFullName?.value || profileEmail?.value || "Usuário",
+      avatarUrl: ""
+    });
+  });
+}
+
 function updateUserUI(user) {
   const el = document.getElementById("userHello");
   if (!el || !user) return;
@@ -1755,4 +2074,18 @@ function updateUserUI(user) {
   const role = user.role || "USER";
 
   el.textContent = `Olá, ${name} (${role})`;
+}function updateUserUI(user) {
+  const el = document.getElementById("userHello");
+  if (!el || !user) return;
+
+  const name = user.name || user.full_name || user.email || "Usuário";
+  const role = user.role || "USER";
+  const avatarUrl = user.avatarUrl || user.avatar_path || "";
+
+  el.textContent = `${name} (${role})`;
+
+  renderAvatarTarget(topbarUserAvatar, {
+    name,
+    avatarUrl
+  });
 }

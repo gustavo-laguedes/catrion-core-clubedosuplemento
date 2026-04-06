@@ -77,21 +77,28 @@
   </button>
 </div>
         
-    
-                        <div class="topbar-right">
-          <span id="userHello" class="hello">Olá!</span>
+         <div class="topbar-right">
+  <button id="btnProfileTrigger" class="topbar-profile-trigger" type="button" aria-label="Abrir perfil">
+    <div id="topbarUserAvatar" class="topbar-user-avatar">G</div>
 
-          <button class="topbar-icon chat-btn" id="btnChat" title="Mensagens" aria-label="Mensagens">
-            💬
-            <span id="chatUnreadBadge" class="chat-badge hidden" aria-label="Mensagens não lidas"></span>
-          </button>
+    <div class="topbar-user-meta">
+      <span id="userHello" class="hello">Usuário</span>
+    </div>
+  </button>
 
-          <div class="divider"></div>
+  <button class="topbar-icon chat-btn" id="btnChat" title="Mensagens" aria-label="Mensagens">
+    💬
+    <span id="chatUnreadBadge" class="chat-badge hidden" aria-label="Mensagens não lidas"></span>
+  </button>
 
-<button class="topbar-icon" id="btnLogout" title="Sair" aria-label="Sair">
-  <span class="icon-power">⏻</span>
-</button>
-        </div>
+  <div class="divider"></div>
+
+  <button class="topbar-icon" id="btnLogout" title="Sair" aria-label="Sair">
+    <span class="icon-power">⏻</span>
+  </button>
+</div>               
+
+
       </header>
 
       <main id="app"></main>
@@ -197,6 +204,15 @@
   <input type="hidden" id="adminUserId">
 
   <div class="admin-form-field">
+  <label for="adminUserFullName">Nome completo</label>
+  <input
+    id="adminUserFullName"
+    type="text"
+    placeholder="Digite o nome completo"
+  >
+</div>
+
+  <div class="admin-form-field">
     <label for="adminUserEmail">E-mail</label>
     <input id="adminUserEmail" type="email" placeholder="Digite o e-mail do usuário">
   </div>
@@ -214,11 +230,19 @@
 
     <div id="adminUserFormFeedback" class="hidden"></div>
 
-    <div class="modal-actions">
-      <button id="btnAdminUserFormCancel" class="btn-ghost" type="button">Cancelar</button>
-      <button id="btnAdminUserSendReset" class="btn-ghost" type="button">Enviar troca de senha</button>
-      <button id="btnAdminUserFormSave" class="btn-primary" type="button">Salvar</button>
-    </div>
+    <div class="admin-user-form-actions">
+  <button id="btnAdminUserFormCancel" type="button" class="admin-btn admin-btn-ghost">
+    Cancelar
+  </button>
+
+  <button id="btnAdminUserSendReset" type="button" class="admin-btn admin-btn-ghost admin-btn-reset">
+  Enviar reset de senha
+</button>
+
+  <button id="btnAdminUserFormSave" type="button" class="admin-btn admin-btn-primary">
+    Salvar
+  </button>
+</div>
   </div>
 </div>
 
@@ -436,6 +460,71 @@
     <div class="chat-clear-actions">
       <button id="btnChatClearCancel" class="btn-ghost" type="button">Cancelar</button>
       <button id="btnChatClearConfirm" class="btn-danger" type="button">Apagar tudo</button>
+    </div>
+  </div>
+</div>
+
+<div id="profileOverlay" class="core-overlay core-hidden">
+  <div class="core-modal profile-modal">
+    <div class="profile-head">
+      <div>
+        <div class="profile-title">Meu perfil</div>
+        <div class="profile-subtitle">Atualize seus dados de acesso e exibição</div>
+      </div>
+
+      <button id="btnProfileClose" class="icon-btn" type="button" aria-label="Fechar">✕</button>
+    </div>
+
+    <div class="profile-form">
+      <div class="profile-avatar-section">
+        <div id="profileAvatarPreview" class="profile-avatar-preview">G</div>
+
+        <input id="profileAvatarInput" type="file" accept="image/*" hidden>
+
+        <div class="profile-avatar-actions">
+          <button id="btnProfileChooseAvatar" type="button" class="admin-btn admin-btn-ghost">
+            Escolher foto
+          </button>
+
+          <button id="btnProfileRemoveAvatar" type="button" class="admin-btn admin-btn-ghost">
+            Remover foto
+          </button>
+        </div>
+      </div>
+
+      <div class="profile-form-grid">
+        <div class="admin-form-field">
+          <label for="profileFullName">Nome completo</label>
+          <input id="profileFullName" type="text" placeholder="Digite seu nome completo">
+        </div>
+
+        <div class="admin-form-field">
+          <label for="profileEmail">E-mail</label>
+          <input id="profileEmail" type="email" placeholder="Digite seu e-mail">
+        </div>
+
+        <div class="admin-form-field">
+          <label for="profilePassword">Nova senha</label>
+          <input id="profilePassword" type="password" placeholder="Digite a nova senha">
+        </div>
+
+        <div class="admin-form-field">
+          <label for="profilePasswordConfirm">Confirmar nova senha</label>
+          <input id="profilePasswordConfirm" type="password" placeholder="Confirme a nova senha">
+        </div>
+      </div>
+
+      <div id="profileFeedback" class="admin-users-feedback hidden"></div>
+
+      <div class="profile-actions">
+        <button id="btnProfileCancel" type="button" class="admin-btn admin-btn-ghost">
+          Cancelar
+        </button>
+
+        <button id="btnProfileSave" type="button" class="admin-btn admin-btn-primary">
+          Salvar alterações
+        </button>
+      </div>
     </div>
   </div>
 </div>
