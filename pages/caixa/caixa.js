@@ -153,8 +153,8 @@ function todayKey(){
   return dayKeyFromISO(new Date().toISOString());
 }
 
-function getFilteredEvents(core){
-  const events = core?.getEvents?.() || [];
+async function getFilteredEvents(core){
+  const events = await core?.getEvents?.() || [];
   const selected = ($eventsDate && $eventsDate.value) ? $eventsDate.value : todayKey();
   return events.filter(e => dayKeyFromISO(e.at) === selected);
 }
@@ -501,7 +501,7 @@ $saleViewBackdrop.classList.remove("hidden");
     disableAllActions(true);
   }
 
-  function openModal(mode) {
+  async function openModal(mode) {
     if (!window.CoreCash) return;
     if (mode === "OPEN" && !canOpenCash) {
   alert("Você não tem permissão para abrir caixa.");
@@ -531,8 +531,8 @@ if (mode === "WITHDRAW" && !canWithdrawCash) {
   $mTitle.textContent = "Abrir caixa";
   $mHint.textContent = "Saldo inicial baseado no último fechamento.";
 
-  const lastClosed =
-    CoreCash.getSession()?.finalAmount ?? 0;
+  const currentSession = await CoreCash.getSession?.();
+const lastClosed = currentSession?.finalAmount ?? 0;
 
   $mValue.value = Number(lastClosed || 0);
   $mValue.disabled = true;
@@ -546,7 +546,7 @@ if (mode === "WITHDRAW" && !canWithdrawCash) {
   $mTitle.textContent = "Fechar caixa";
   $mHint.textContent = "Saldo final sugerido com base no dinheiro teórico.";
 
-  const theoCash = CoreCash.getTheoreticalCash?.() || 0;
+  const theoCash = await CoreCash.getTheoreticalCash?.() || 0;
 
   $mValue.value = Number(theoCash || 0);
   $mValue.disabled = true;
@@ -600,22 +600,22 @@ modalValueLocked = false;
 
   }
 
-  function render() {
+  async function render() {
     const core = window.CoreCash;
 
-    const session = core?.getSession?.() || null;
-    const events = getFilteredEvents(core);
-    const summary = core?.getSummary?.() || {
-      byPayment: { cash: 0, pix: 0, cardCredit: 0, cardDebit: 0 },
-      salesCount: 0,
-      salesTotal: 0,
-      suppliesCash: 0,
-      withdrawsCash: 0,
-      profitTotal: 0,
-      profitPct: 0,
-      costTotal: 0
-    };
-    const theoCash = core?.getTheoreticalCash?.() || 0;
+    const session = await core?.getSession?.() || null;
+const events = await getFilteredEvents(core);
+const summary = await core?.getSummary?.() || {
+  byPayment: { cash: 0, pix: 0, cardCredit: 0, cardDebit: 0 },
+  salesCount: 0,
+  salesTotal: 0,
+  suppliesCash: 0,
+  withdrawsCash: 0,
+  profitTotal: 0,
+  profitPct: 0,
+  costTotal: 0
+};
+const theoCash = await core?.getTheoreticalCash?.() || 0;
 
     const isOpen = !!(session && session.isOpen);
 
@@ -780,7 +780,7 @@ if (isCancelled) {
     });
   }
 
-  function confirmModal() {
+  async function confirmModal() {
     if (!window.CoreCash) return;
 
   
@@ -794,7 +794,7 @@ if (isCancelled) {
       const r = CoreCash.open({ initialAmount: val, by, notes });
       if (!r.ok) alert(r.reason || "Não foi possível abrir o caixa.");
       closeModal();
-      render();
+      await render();
       return;
     }
 
@@ -802,7 +802,7 @@ if (isCancelled) {
       const r = CoreCash.close({ finalAmount: val, by, notes });
       if (!r.ok) alert(r.reason || "Não foi possível fechar o caixa.");
       closeModal();
-      render();
+      await render();
       return;
     }
 
@@ -810,7 +810,7 @@ if (isCancelled) {
       const r = CoreCash.supply({ amount: val, by, notes });
       if (!r.ok) alert(r.reason || "Não foi possível lançar suprimento.");
       closeModal();
-      render();
+      await render();
       return;
     }
 
@@ -818,7 +818,7 @@ if (isCancelled) {
       const r = CoreCash.withdraw({ amount: val, by, notes });
       if (!r.ok) alert(r.reason || "Não foi possível lançar sangria.");
       closeModal();
-      render();
+      await render();
       return;
     }
 
@@ -992,8 +992,8 @@ if (document.activeElement === $adminPass) {
       if (viewBtn) {
         ev.stopPropagation();
         const id = viewBtn.getAttribute("data-view");
-        const eventsAll = window.CoreCash.getEvents();
-        const saleEvt = eventsAll.find(x => String(x.id) === String(id));
+        const eventsAll = await window.CoreCash.getEvents();
+const saleEvt = eventsAll.find(x => String(x.id) === String(id));
         if (saleEvt) openSaleView(saleEvt);
         return;
       }
@@ -1009,8 +1009,8 @@ if (cancelBtn) {
   }
 
   // pega o evento antes do cancelamento, para sabermos o que sincronizar
-  const eventsAllBefore = window.CoreCash.getEvents();
-  const evtBefore = eventsAllBefore.find(x => String(x.id) === String(id));
+  const eventsAllBefore = await window.CoreCash.getEvents();
+const evtBefore = eventsAllBefore.find(x => String(x.id) === String(id));
 
   const r = window.CoreCash.cancelEvent(id, {
     by: getOperatorName() || "admin",
@@ -1032,14 +1032,16 @@ if (cancelBtn) {
     alert("O movimento foi cancelado no caixa, mas houve falha ao sincronizar estoque/venda no banco.");
   }
 
-  render();
+  await render();
   return;
 }
     });
   }
 
   wire();
-  render();
+render().catch(err => {
+  console.error("[Caixa] erro ao renderizar:", err);
+});
 
-  window.CoreCaixaPage = { render };
+window.CoreCaixaPage = { render };
 })();

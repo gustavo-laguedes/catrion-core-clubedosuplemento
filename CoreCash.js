@@ -315,6 +315,70 @@ function loadEvents() {
   return Array.isArray(arr) ? arr : [];
 }
 
+async function loadRemoteSession() {
+  try {
+    if (!window.CashStore?.getLatestOpenSession) return null;
+    const row = await window.CashStore.getLatestOpenSession();
+    if (!row) return null;
+
+    return {
+      isOpen: row.status === "open",
+      openedAt: row.opened_at,
+      openedBy: row.opened_by || "system",
+      initialAmount: Number(row.opening_cash_cents || 0) / 100,
+      notes: row.note || "",
+      closedAt: row.closed_at || null,
+      closedBy: row.closed_by || null,
+      finalAmount: row.closing_cash_counted_cents != null
+        ? Number(row.closing_cash_counted_cents || 0) / 100
+        : null,
+      remoteSessionId: row.id
+    };
+  } catch (e) {
+    console.warn("[CoreCash] Falha ao carregar sessão remota:", e);
+    return null;
+  }
+}
+
+function mapRemoteEvent(row) {
+  let noteObj = {};
+  try {
+    noteObj = row?.note ? JSON.parse(row.note) : {};
+  } catch {
+    noteObj = {};
+  }
+
+  const typeMap = {
+    OPEN: "OPEN",
+    CLOSE: "CLOSE",
+    SUPPLY: "SUPPLY",
+    WITHDRAW: "WITHDRAW",
+    SALE: "SALE"
+  };
+
+  return {
+    id: row.id,
+    type: typeMap[String(row.kind || "").toUpperCase()] || String(row.kind || "").toUpperCase(),
+    at: row.created_at,
+    by: noteObj?.by || "system",
+    amount: Number(row.amount_cents || 0) / 100,
+    saleId: noteObj?.saleId || null,
+    meta: noteObj?.meta || {},
+    note: row.note || null
+  };
+}
+
+async function loadRemoteEvents(sessionId) {
+  try {
+    if (!window.CashStore?.listEvents || !sessionId) return [];
+    const rows = await window.CashStore.listEvents({ sessionId, limit: 500 });
+    return (rows || []).map(mapRemoteEvent);
+  } catch (e) {
+    console.warn("[CoreCash] Falha ao carregar eventos remotos:", e);
+    return [];
+  }
+}
+
 
   function saveEvents(events) {
   let list = Array.isArray(events) ? events : [];
@@ -517,9 +581,31 @@ function getTodayEvents() {
     return await syncEnsureRemoteSession(session);
   },
 
-  getSession() { return loadSession(); },
-    isOpen() { return !!ensureOpenSession(); },
-    getEvents() { return loadEvents(); },
+    async getSession() {
+    const remote = await loadRemoteSession();
+    if (remote) {
+      saveSession(remote);
+      return remote;
+    }
+    return loadSession();
+  },
+
+  async isOpen() {
+    const s = await this.getSession();
+    return !!(s && s.isOpen);
+  },
+
+  async getEvents() {
+    const session = await this.getSession();
+    if (session?.remoteSessionId) {
+      const remoteEvents = await loadRemoteEvents(session.remoteSessionId);
+      if (remoteEvents.length) {
+        saveEvents(remoteEvents);
+        return remoteEvents;
+      }
+    }
+    return loadEvents();
+  },
     canCancelEvent(event){
   return canCancelEvent(event);
 },
@@ -699,17 +785,28 @@ const profitNorm = (profit != null)
       return { ok: true, event: evt };
     },
 
-    getSummary() {
-  return buildSummary(getTodayEvents());
-},
+        async getSummary() {
+      const events = await this.getEvents();
+      const today = new Date();
 
+      const todayEvents = (events || []).filter(e => isSameDayBR(e.at, today));
+      return buildSummary(todayEvents);
+    },
 
-    getTheoreticalCash() {
-      const s = loadSession();
-  const initial = s ? normalizeMoney(s.initialAmount) : 0;
-  const summary = buildSummary(getSessionEvents());
-  return round2(initial + summary.suppliesCash - summary.withdrawsCash + summary.byPayment.cash);
-}
+    async getTheoreticalCash() {
+      const s = await this.getSession();
+      const events = await this.getEvents();
+
+      const initial = s ? normalizeMoney(s.initialAmount) : 0;
+      const start = s?.openedAt ? new Date(s.openedAt).getTime() : null;
+
+      const sessionEvents = start
+        ? (events || []).filter(e => new Date(e.at).getTime() >= start)
+        : [];
+
+      const summary = buildSummary(sessionEvents);
+      return round2(initial + summary.suppliesCash - summary.withdrawsCash + summary.byPayment.cash);
+    }
   };
 
   global.CoreCash = CoreCash;
