@@ -202,35 +202,36 @@ function isSaleCancelled(sale) {
 }
 
   async function getStockAlerts() {
-    const products = await loadProductsSafe();
-    const active = products.filter((p) => (p.status || "active") !== "inactive");
+  const products = await loadProductsSafe();
+  const active = products.filter((p) => String(p.status || "active").toLowerCase() !== "inactive");
 
-    const zero = [];
-    const below = [];
+  const zero = [];
+  const below = [];
 
-    for (const p of active) {
-      const stock = Number(p.stockOnHand || 0);
-      const min = Number(p.stockMin || 0);
+  for (const p of active) {
+    const stock = Number(p.stockOnHand || 0);
+    const min = Number(p.stockMin || 0);
 
-      if (stock <= 0) {
-        zero.push(p);
-        continue;
-      }
-
-      if (min > 0 && stock < min) {
-        below.push(p);
-      }
+    if (stock <= 0) {
+      zero.push(p);
+      continue;
     }
 
-    zero.sort((a, b) => Number(a.stockOnHand || 0) - Number(b.stockOnHand || 0));
-    below.sort(
-      (a, b) =>
-        (Number(a.stockOnHand || 0) - Number(a.stockMin || 0)) -
-        (Number(b.stockOnHand || 0) - Number(b.stockMin || 0))
-    );
-
-    return { zero, below };
+    // considera alerta também quando está exatamente no mínimo
+    if (min > 0 && stock <= min) {
+      below.push(p);
+    }
   }
+
+  zero.sort((a, b) => Number(a.stockOnHand || 0) - Number(b.stockOnHand || 0));
+  below.sort(
+    (a, b) =>
+      (Number(a.stockOnHand || 0) - Number(a.stockMin || 0)) -
+      (Number(b.stockOnHand || 0) - Number(b.stockMin || 0))
+  );
+
+  return { zero, below };
+}
 
   function getPayableDate(item) {
     return (
