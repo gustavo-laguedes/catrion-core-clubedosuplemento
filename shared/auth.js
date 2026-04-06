@@ -340,32 +340,32 @@
     },
 
     OPER: {
-      canManageUsers: false,
-      canEditUsers: false,
-      canDeleteUsers: false,
-      canBlockUsers: false,
-      canSendFirstAccess: false,
+  canManageUsers: false,
+  canEditUsers: false,
+  canDeleteUsers: false,
+  canBlockUsers: false,
+  canSendFirstAccess: false,
 
-      canViewReports: false,
-      canExportReports: false,
+  canViewReports: false,
+  canExportReports: false,
 
-      canCreateProducts: false,
-      canEditProducts: false,
-      canDeleteProducts: false,
-      canMoveStock: false,
-      canViewProductCosts: false,
+  canCreateProducts: true,
+  canEditProducts: false,
+  canDeleteProducts: false,
+  canMoveStock: false,
+  canViewProductCosts: false,
 
-      canOpenCash: true,
-      canCloseCash: true,
-      canSupplyCash: false,
-      canWithdrawCash: false,
-      canCancelCashEvent: false,
-      canViewCashProfit: false,
+  canOpenCash: true,
+  canCloseCash: true,
+  canSupplyCash: false,
+  canWithdrawCash: false,
+  canCancelCashEvent: false,
+  canViewCashProfit: false,
 
-      canCompleteSale: true,
-      canSaveCoupon: true,
-      canDeleteCoupon: false
-    },
+  canCompleteSale: true,
+  canSaveCoupon: true,
+  canDeleteCoupon: false
+},
 
     VISU: {
       canManageUsers: false,
