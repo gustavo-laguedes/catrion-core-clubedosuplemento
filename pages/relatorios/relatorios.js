@@ -110,13 +110,19 @@ function openPrintPDF(title, subtitle, headers, rows){
   return `id_${Date.now()}_${Math.random().toString(36).slice(2,10)}`;
 }
 
-  function loadCashEvents(){
-    // CoreCash pode ter nomes diferentes; fallback pra storage
-    if (window.CoreCash?.getEvents) return window.CoreCash.getEvents();
-    try{
-      return JSON.parse(localStorage.getItem("core.cash.events.v1") || "[]");
-    }catch{ return []; }
+  async function loadCashEvents(){
+  if (window.CoreCash?.getEvents) {
+    const events = await window.CoreCash.getEvents();
+    return Array.isArray(events) ? events : [];
   }
+
+  try{
+    const parsed = JSON.parse(localStorage.getItem("core.cash.events.v1") || "[]");
+    return Array.isArray(parsed) ? parsed : [];
+  }catch{
+    return [];
+  }
+}
 
   function onlySales(events){
     return events.filter(e => e.type === "SALE");
@@ -618,7 +624,7 @@ btnRefresh.onclick = () => draw();
       const e = parseDateInput(dEnd.value) || end;
       e.setHours(23,59,59,999);
 
-      const events = loadCashEvents();
+      const events = await loadCashEvents();
 const sales = onlyActiveSales(events).filter(x => x.at && inRange(x.at, s, e));
 
       const k = calcKpis(sales);
@@ -865,7 +871,7 @@ function renderResultado(){
     e.setHours(23,59,59,999);
 
     // --- vendas
-    const events = loadCashEvents();
+   const events = await loadCashEvents();
 const sales = onlyActiveSales(events).filter(x => x.at && inRange(x.at, s, e));
     const k = calcKpis(sales);
 
@@ -1271,7 +1277,7 @@ function drawLineChartSigned(canvas, series){
       const e = parseDateInput(vEnd.value) || end;
       e.setHours(23,59,59,999);
 
-      const events = loadCashEvents();
+      const events = await loadCashEvents();
       const salesAll = onlySales(events).filter(x => x.at && inRange(x.at, s, e));
 
       // popular usuários
@@ -1692,7 +1698,7 @@ draw();
     const e = parseDateInput(pEnd.value) || end;
     e.setHours(23,59,59,999);
 
-    const events = loadCashEvents();
+    const events = await loadCashEvents();
 const sales = onlyActiveSales(events).filter(x => x.at && inRange(x.at, s, e));
 
     const map = new Map(); // key -> {name, sku, qty, total, image}
@@ -1850,7 +1856,7 @@ draw();
     const e = parseDateInput(vdEnd.value) || end;
     e.setHours(23,59,59,999);
 
-    const events = loadCashEvents();
+    const events = await loadCashEvents();
 let sales = onlyActiveSales(events).filter(x => x.at && inRange(x.at, s, e));
 
     if (vdExcludeDev.value === "yes"){
@@ -1907,7 +1913,7 @@ document.getElementById("btnExportPDF").onclick = () => {
     const e = parseDateInput(vdEnd.value) || end;
     e.setHours(23,59,59,999);
 
-    const events = loadCashEvents();
+    const events = await loadCashEvents();
     const salesAll = onlySales(events).filter(x => x.at && inRange(x.at, s, e));
     const sales = salesAll.filter(x => (x.by || "—") === user);
 
@@ -2086,7 +2092,7 @@ draw();
       const e = parseDateInput(cEnd.value) || end;
       e.setHours(23,59,59,999);
 
-      const events = loadCashEvents().filter(x => x.at && inRange(x.at, s, e));
+      const events = (await loadCashEvents()).filter(x => x.at && inRange(x.at, s, e));
 
       const sales = onlyActiveSales(events);
       const sup = events.filter(x => x.type === "SUPPLY");
@@ -2183,7 +2189,7 @@ draw();
       const e = parseDateInput(clEnd.value) || end;
       e.setHours(23,59,59,999);
 
-      const events = loadCashEvents();
+      const events = await loadCashEvents();
 const sales = onlyActiveSales(events).filter(x => x.at && inRange(x.at, s, e));
 
       const map = new Map(); // id -> {id,name,total,count}
@@ -2816,7 +2822,7 @@ function renderCupons(){
     const e = parseDateInput(cpEnd.value) || end;
     e.setHours(23,59,59,999);
 
-    const events = loadCashEvents();
+    const events = await loadCashEvents();
 
 // ✅ só sales ativas no período
 const sales = onlyActiveSales(events).filter(ev => {

@@ -177,52 +177,92 @@ async function getFilteredEvents(core){
 }
 
 async function syncCancelledSaleToSupabase(evt) {
-  if (!evt || evt.type !== "SALE") return;
+  if (!evt || evt.type !== "SALE") {
+    return { ok: true, skipped: true, reason: "Evento não é venda." };
+  }
 
   const saleId = evt.saleId || evt?.meta?.saleId || null;
-  const items = evt?.meta?.items || [];
+  const items = Array.isArray(evt?.meta?.items) ? evt.meta.items : [];
 
-  if (!saleId) {
-    throw new Error("Cancelamento da venda sem saleId para sincronizar no Supabase.");
+  const result = {
+    ok: true,
+    skipped: false,
+    saleCancelled: false,
+    stockRestored: 0,
+    stockSkipped: 0,
+    warnings: []
+  };
+
+  // 1) tenta cancelar a venda, mas não explode se não conseguir
+  if (saleId && window.SalesStore?.cancelSale) {
+    try {
+      await window.SalesStore.cancelSale(saleId);
+      result.saleCancelled = true;
+    } catch (err) {
+      console.warn("[Caixa] Falha ao cancelar venda no Supabase:", err);
+
+      const msg = String(err?.message || "").toLowerCase();
+      const isNotFound =
+        msg.includes("0 rows") ||
+        msg.includes("json object requested") ||
+        msg.includes("no rows");
+
+      if (isNotFound) {
+        result.warnings.push("Venda não encontrada para cancelamento no banco.");
+      } else {
+        result.warnings.push("Falha ao marcar venda como cancelada.");
+      }
+    }
+  } else {
+    result.warnings.push("Evento sem saleId para sincronizar venda.");
   }
 
-  // 1) marca venda como cancelada
-  if (window.SalesStore?.cancelSale) {
-    await window.SalesStore.cancelSale(saleId);
-  }
-
-  // 2) devolve estoque item por item
+  // 2) devolve estoque item por item, sem travar tudo por causa de 1 item ruim
   for (const item of items) {
-    const productId =
-      item?.productId ||
-      item?.product_id ||
-      null;
+    try {
+      const productId = item?.productId || item?.product_id || null;
+      const qty = Number(item?.qty || 0);
 
-    const qty = Number(item?.qty || 0);
+      if (!productId || qty <= 0) {
+        result.stockSkipped += 1;
+        continue;
+      }
 
-    if (!productId || qty <= 0) continue;
+      const product = await window.ProductsStore.getById(productId).catch(() => null);
+      if (!product) {
+        result.stockSkipped += 1;
+        result.warnings.push(`Produto não encontrado no estorno: ${productId}`);
+        continue;
+      }
 
-    // busca produto atual
-    const product = await window.ProductsStore.getById(productId);
-    if (!product) continue;
+      const currentStock = Number(product.stockOnHand || 0);
+      const nextStock = currentStock + qty;
 
-    const currentStock = Number(product.stockOnHand || 0);
-    const nextStock = currentStock + qty;
+      await window.ProductsStore.update(productId, {
+        stockOnHand: nextStock
+      });
 
-    // atualiza estoque do produto
-    await window.ProductsStore.update(productId, {
-      stockOnHand: nextStock
-    });
+      try {
+        await window.StockStore.addMove({
+          productId,
+          kind: "in",
+          qty,
+          note: "ESTORNO VENDA CANCELADA",
+          ref: saleId || evt.id || null
+        });
+      } catch (moveErr) {
+        console.warn("[Caixa] Falha ao gravar stock_move de estorno:", moveErr);
+        result.warnings.push(`Falha ao gravar stock_move do produto ${productId}`);
+      }
 
-    // grava movimentação de estorno
-    await window.StockStore.addMove({
-      productId,
-      kind: "in",
-      qty,
-      note: "ESTORNO VENDA CANCELADA",
-      ref: saleId
-    });
+      result.stockRestored += 1;
+    } catch (itemErr) {
+      console.warn("[Caixa] Falha ao estornar item da venda cancelada:", itemErr);
+      result.stockSkipped += 1;
+    }
   }
+
+  return result;
 }
 
   function getOperatorName() {
@@ -605,6 +645,25 @@ modalValueLocked = false;
 
     const session = await core?.getSession?.() || null;
 const events = await getFilteredEvents(core);
+const sanitizedEvents = (events || []).filter(e => {
+  if (e?.type !== "SALE") return true;
+
+  const total = Number(
+    e?.total ??
+    e?.amount ??
+    e?.payments?.cash ?? 0
+  );
+
+  const hasPayments =
+    Number(e?.payments?.cash || 0) > 0 ||
+    Number(e?.payments?.pix || 0) > 0 ||
+    Number(e?.payments?.cardCredit || 0) > 0 ||
+    Number(e?.payments?.cardDebit || 0) > 0;
+
+  const hasItems = Array.isArray(e?.meta?.items) && e.meta.items.length > 0;
+
+  return total > 0 || hasPayments || hasItems;
+});
 const summary = await core?.getSummary?.() || {
   byPayment: { cash: 0, pix: 0, cardCredit: 0, cardDebit: 0 },
   salesCount: 0,
@@ -698,12 +757,12 @@ if (!canSeeSaleCosts) {
       return;
     }
 
-    if (!events.length) {
+    if (!sanitizedEvents.length) {
       $eventsList.innerHTML = `<div class="muted">Nenhum evento registrado ainda.</div>`;
       return;
     }
 
-    events.slice(0, 200).forEach(e => {
+    sanitizedEvents.slice(0, 200).forEach(e => {
       const t = typeLabel(e.type);
       const when = fmtDate(e.at);
       const who = e.by ? ` • por ${e.by}` : "";
@@ -1022,14 +1081,12 @@ const evtBefore = eventsAllBefore.find(x => String(x.id) === String(id));
     return;
   }
 
-  try {
-    // só venda gera reversão de estoque e update na tabela sales
     if (evtBefore?.type === "SALE") {
-      await syncCancelledSaleToSupabase(evtBefore);
+    const syncResult = await syncCancelledSaleToSupabase(evtBefore);
+
+    if (syncResult?.warnings?.length) {
+      console.warn("[Caixa] Cancelamento concluído com avisos:", syncResult);
     }
-  } catch (err) {
-    console.error("[Caixa] Falha ao sincronizar cancelamento no Supabase:", err);
-    alert("O movimento foi cancelado no caixa, mas houve falha ao sincronizar estoque/venda no banco.");
   }
 
   await render();
