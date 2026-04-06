@@ -170,9 +170,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (emailInput) emailInput.value = profile?.email || user.email || "";
     if (fullNameInput) fullNameInput.value = profile?.full_name || "";
   } catch (err) {
-    console.error("[FIRST ACCESS] erro ao iniciar:", err);
-    setFeedback("Link inválido ou expirado.");
-  }
+  console.error("[FIRST ACCESS] erro ao iniciar:", err);
+  setFeedback("Não foi possível validar o link de primeiro acesso. Gere um novo link na área administrativa.");
+}
 
   if (avatarPick && avatarFile) {
     avatarPick.addEventListener("click", () => {

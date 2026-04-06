@@ -1167,6 +1167,7 @@ async function saveAdminUser() {
   }
 }
 
+
 async function sendAdminFirstAccess(userId) {
   if (!window.AdminApi?.sendFirstAccess) {
     setAdminUsersFeedback("AdminApi não carregada.");
@@ -1182,24 +1183,22 @@ async function sendAdminFirstAccess(userId) {
 
     if (actionBtn) {
       actionBtn.disabled = true;
-      actionBtn.textContent = "Enviando...";
+      actionBtn.textContent = "Gerando link...";
     }
 
-    await window.AdminApi.sendFirstAccess({ user_id: userId });
-    setAdminUsersFeedback("E-mail de primeiro acesso enviado com sucesso.", "success");
+    const result = await window.AdminApi.sendFirstAccess({ user_id: userId });
+    const actionLink = result?.action_link || "";
+
+    if (!actionLink) {
+      throw new Error("O link de primeiro acesso não foi retornado.");
+    }
+
+    window.open(actionLink, "_blank");
+
+    setAdminUsersFeedback("Link de primeiro acesso gerado com sucesso.", "success");
   } catch (err) {
-    console.error("[ADMIN USERS] erro ao enviar primeiro acesso:", err);
-
-    const message = String(err?.message || "");
-
-    if (message.toLowerCase().includes("rate limit")) {
-      setAdminUsersFeedback(
-        "Muitas tentativas de envio em pouco tempo. Aguarde alguns minutos antes de tentar novamente."
-      );
-      return;
-    }
-
-    setAdminUsersFeedback(message || "Não foi possível enviar o primeiro acesso.");
+    console.error("[ADMIN USERS] erro ao gerar primeiro acesso:", err);
+    setAdminUsersFeedback(err?.message || "Não foi possível gerar o primeiro acesso.");
   } finally {
     if (actionBtn) {
       actionBtn.disabled = false;
