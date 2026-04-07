@@ -1785,17 +1785,23 @@ function cashSessionFallback(){
   }
 }
 
-function isCashOpen(){
+async function isCashOpen(){
   // preferencial: CoreCash se existir
-  if (window.CoreCash?.isOpen) return !!window.CoreCash.isOpen();
+  if (window.CoreCash?.isOpen) {
+    try {
+      return !!(await window.CoreCash.isOpen());
+    } catch (err) {
+      console.warn("[VENDA] Falha ao consultar CoreCash.isOpen():", err);
+    }
+  }
 
   // fallback: session gravada pelo CoreCash
   const s = cashSessionFallback();
   return !!(s && s.isOpen);
 }
 
-function refreshCashGateUI(){
-  const isOpen = isCashOpen();
+async function refreshCashGateUI(){
+  const isOpen = await isCashOpen();
 
   // pill do status (se existir)
   const pill = document.getElementById("saleStatusPill");
@@ -1814,9 +1820,9 @@ function refreshCashGateUI(){
 
 
   /* ---------- PAGAMENTO ---------- */
-  function openPay(){
+  async function openPay(){
   // bloqueio: só finaliza com caixa aberto
-  if (!isCashOpen()){
+  if (!(await isCashOpen())){
     alert("Caixa está FECHADO. Abra o caixa para finalizar a venda.");
     return;
   }
@@ -1929,11 +1935,11 @@ if (!pid) continue;
     const t = total();
     if (t <= 0) return;
 
-    if (!isCashOpen()){
-    alert("Caixa está FECHADO. Abra o caixa para finalizar a venda.");
-    btnPayConfirm.disabled = false;
-    return;
-  }
+    if (!(await isCashOpen())){
+  alert("Caixa está FECHADO. Abra o caixa para finalizar a venda.");
+  btnPayConfirm.disabled = false;
+  return;
+}
 
   // ✅ trava duplo clique (evita registrar 10 vendas)
 if (btnPayConfirm.disabled) return;
@@ -2367,12 +2373,12 @@ btnPayConfirm.disabled = false;
 
   btnDiscount?.addEventListener("click", openDiscount);
 
-btnCheckout?.addEventListener("click", () => {
+btnCheckout?.addEventListener("click", async () => {
   if (!canCompleteSale) {
     alert("Você não tem permissão para concluir vendas.");
     return;
   }
-  openPay();
+  await openPay();
 });
 
   // modal desconto
