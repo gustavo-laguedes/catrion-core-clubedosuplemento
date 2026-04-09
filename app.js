@@ -4,6 +4,62 @@ const router = window.CoreRouter.createRouter({ mountEl: app });
 
 window.coreRouterInstance = router;
 
+const IS_LOCAL_DEV =
+  window.location.hostname === "localhost" ||
+  window.location.hostname === "127.0.0.1";
+
+function enableLocalhostWriteGuard() {
+  if (!IS_LOCAL_DEV) return;
+  if (!window.sb || typeof window.sb.from !== "function") return;
+  if (window.sb.__localhostWriteGuardEnabled) return;
+
+  const originalFrom = window.sb.from.bind(window.sb);
+
+  window.sb.from = function (...args) {
+    const query = originalFrom(...args);
+
+    ["insert", "update", "delete", "upsert"].forEach((method) => {
+      if (typeof query[method] === "function") {
+        query[method] = function () {
+          const tableName = args[0] || "tabela";
+          const message = `[LOCALHOST] ${method.toUpperCase()} bloqueado em ${tableName}`;
+          console.warn(message);
+          throw new Error("Modo localhost: gravação no banco bloqueada.");
+        };
+      }
+    });
+
+    return query;
+  };
+
+  // bloquear storage também no localhost
+if (window.sb.storage && typeof window.sb.storage.from === "function") {
+  const originalStorageFrom = window.sb.storage.from.bind(window.sb.storage);
+
+  window.sb.storage.from = function (...args) {
+    const bucket = args[0] || "bucket";
+
+    return {
+      upload() {
+        console.warn(`[LOCALHOST] UPLOAD bloqueado no bucket ${bucket}`);
+        throw new Error("Modo localhost: upload bloqueado.");
+      },
+      remove() {
+        console.warn(`[LOCALHOST] DELETE bloqueado no bucket ${bucket}`);
+        throw new Error("Modo localhost: remoção bloqueada.");
+      },
+      getPublicUrl: originalStorageFrom(...args).getPublicUrl
+    };
+  };
+}
+
+  window.sb.__localhostWriteGuardEnabled = true;
+  console.warn("[LOCALHOST] Write guard do Supabase ativado.");
+}
+
+enableLocalhostWriteGuard();
+setTimeout(enableLocalhostWriteGuard, 0);
+
 (async () => {
   try {
     let isLogged = false;
