@@ -606,3 +606,119 @@
   font-weight:900;
   color:#64748b;
 }
+
+.today-badge--button{
+  border: none;
+  cursor: pointer;
+  transition: transform .16s ease, box-shadow .16s ease, opacity .16s ease;
+}
+
+.today-badge--button:hover{
+  transform: translateY(-1px);
+  box-shadow:0 16px 30px rgba(15,23,42,.22);
+}
+
+.today-badge--button:active{
+  transform: translateY(0);
+}
+
+.today-badge--button:focus{
+  outline: none;
+  box-shadow:0 0 0 3px rgba(37,99,235,.18), 0 16px 30px rgba(15,23,42,.22);
+}
+
+.today-date-anchor{
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.today-date-native{
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+  border: 0;
+  padding: 0;
+}
+
+/* ===== HOME: cards com altura controlada ===== */
+
+.today-card.chart-card,
+.today-card.customers-mini-card,
+.today-card.stock-card,
+.today-card.payables-card{
+  min-height: 470px;
+  max-height: 470px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* conteúdo interno precisa poder encolher */
+.today-card.chart-card .chart-wrap,
+.today-card.customers-mini-card .customer-list,
+.today-card.stock-card .alert-list,
+.today-card.payables-card .alert-list{
+  min-height: 0;
+}
+
+/* gráfico/produtos */
+.today-card.chart-card .chart-wrap{
+  flex: 1 1 auto;
+  align-items: start;
+}
+
+.today-card.chart-card .chart-legend{
+  max-height: 100%;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
+/* clientes */
+.today-card.customers-mini-card .customer-list{
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
+/* alertas */
+.today-card.stock-card .alert-list,
+.today-card.payables-card .alert-list{
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
+/* scroll bonito */
+.today-card .chart-legend::-webkit-scrollbar,
+.today-card .customer-list::-webkit-scrollbar,
+.today-card .alert-list::-webkit-scrollbar{
+  width: 10px;
+}
+
+.today-card .chart-legend::-webkit-scrollbar-track,
+.today-card .customer-list::-webkit-scrollbar-track,
+.today-card .alert-list::-webkit-scrollbar-track{
+  background: transparent;
+}
+
+.today-card .chart-legend::-webkit-scrollbar-thumb,
+.today-card .customer-list::-webkit-scrollbar-thumb,
+.today-card .alert-list::-webkit-scrollbar-thumb{
+  background: rgba(15,23,42,.16);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.today-card .chart-legend::-webkit-scrollbar-thumb:hover,
+.today-card .customer-list::-webkit-scrollbar-thumb:hover,
+.today-card .alert-list::-webkit-scrollbar-thumb:hover{
+  background: rgba(15,23,42,.28);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}

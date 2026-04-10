@@ -43,7 +43,17 @@ function getTaxStorageKey(levelKey) {
 
 function cleanStr(v){ return String(v ?? "").trim(); }
 
-function loadTax(levelKey){
+async function loadTax(levelKey){
+  try{
+    if (window.ProductTaxonomiesStore?.list) {
+      const rows = await window.ProductTaxonomiesStore.list(levelKey);
+      const list = (rows || []).map(x => cleanStr(x.value)).filter(Boolean);
+      return [...new Set(list)];
+    }
+  }catch(err){
+    console.warn(`[Tax] Falha ao carregar ${levelKey} do Supabase. Usando fallback local.`, err);
+  }
+
   const key = getTaxStorageKey(levelKey);
   if (!key) return [];
 
@@ -56,12 +66,32 @@ function loadTax(levelKey){
   }
 }
 
-function saveTax(levelKey, list){
+async function saveTax(levelKey, list){
+  const clean = (list || []).map(cleanStr).filter(Boolean);
+  const uniq = [...new Set(clean)];
+
+  try{
+    if (window.ProductTaxonomiesStore?.list) {
+      const current = await window.ProductTaxonomiesStore.list(levelKey);
+      const currentValues = new Set((current || []).map(x => cleanStr(x.value)).filter(Boolean));
+
+      for (const value of uniq) {
+        if (!currentValues.has(value)) {
+          try {
+            await window.ProductTaxonomiesStore.create(levelKey, value);
+          } catch (err) {
+            console.warn(`[Tax] Não foi possível criar "${value}" em ${levelKey}:`, err);
+          }
+        }
+      }
+    }
+  }catch(err){
+    console.warn(`[Tax] Falha ao salvar ${levelKey} no Supabase. Mantendo fallback local.`, err);
+  }
+
   const key = getTaxStorageKey(levelKey);
   if (!key) return;
 
-  const clean = (list || []).map(cleanStr).filter(Boolean);
-  const uniq = [...new Set(clean)];
   localStorage.setItem(key, JSON.stringify(uniq));
 }
 
@@ -154,89 +184,95 @@ if (!input) return;
   input.dataset.taxBound = "1";
 
     const prettyName = {
-    cat: "Categoria",
-    sub1: "Subcategoria 1",
-    sub2: "Subcategoria 2",
-    sub3: "Subcategoria 3",
-  }[levelKey] || "Selecionar";
+  cat: "Categoria",
+  sub1: "Marca",
+  sub2: "Sabor",
+  sub3: "Tamanho",
+}[levelKey] || "Selecionar";
 
 
-  function renderList(filterText = "") {
-    const q = cleanStr(filterText).toLowerCase();
-    const items = loadTax(levelKey)
-      .filter(v => !q || v.toLowerCase().includes(q))
-      .sort((a,b)=> a.localeCompare(b, "pt-BR"));
+  async function renderList(filterText = "") {
+  const q = cleanStr(filterText).toLowerCase();
+  const baseItems = await loadTax(levelKey);
 
-    listBox.innerHTML = "";
+  const items = baseItems
+    .filter(v => !q || v.toLowerCase().includes(q))
+    .sort((a,b)=> a.localeCompare(b, "pt-BR"));
 
-    if (!items.length) {
-      const div = document.createElement("div");
-      div.className = "muted mini";
-      div.textContent = "Nada encontrado.";
-      listBox.appendChild(div);
-      return;
-    }
-items.forEach(v => {
-  const row = document.createElement("div");
-  row.className = "tax-item";
+  listBox.innerHTML = "";
 
-  row.innerHTML = `
-    <div class="t">${escapeHtml(v)}</div>
-    <div class="right">
-      <div class="x">clique para selecionar</div>
-      <button type="button" class="tax-del" title="Excluir">🗑️</button>
-    </div>
-  `;
+  if (!items.length) {
+    const div = document.createElement("div");
+    div.className = "muted mini";
+    div.textContent = "Nada encontrado.";
+    listBox.appendChild(div);
+    return;
+  }
 
-  // clique no item seleciona
-  row.addEventListener("click", () => {
-    input.value = v;
-    dlg.close();
-    onChange && onChange();
-  });
+  items.forEach(v => {
+    const row = document.createElement("div");
+    row.className = "tax-item";
 
-  // clique no lixo exclui (sem selecionar)
-  const btnDel = row.querySelector(".tax-del");
-  btnDel.addEventListener("click", (ev) => {
-    ev.preventDefault();
-    ev.stopPropagation();
+    row.innerHTML = `
+      <div class="t">${escapeHtml(v)}</div>
+      <div class="right">
+        <div class="x">clique para selecionar</div>
+        <button type="button" class="tax-del" title="Excluir">🗑️</button>
+      </div>
+    `;
 
-    const ok = confirm(`Excluir "${v}"?`);
-    if (!ok) return;
-
-    // remove do storage
-    const cur = loadTax(levelKey);
-    const next = cur.filter(x => x !== v);
-    saveTax(levelKey, next);
-
-    // se o campo atual estava usando esse valor, limpa
-    if (cleanStr(input.value) === v) {
-      input.value = "";
+    row.addEventListener("click", () => {
+      input.value = v;
+      dlg.close();
       onChange && onChange();
-    }
+    });
 
-    // re-renderiza mantendo o filtro digitado
-    renderList(search.value);
+    const btnDel = row.querySelector(".tax-del");
+    btnDel.addEventListener("click", async (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+
+      const ok = confirm(`Excluir "${v}"?`);
+      if (!ok) return;
+
+      try{
+        if (window.ProductTaxonomiesStore?.remove) {
+          await window.ProductTaxonomiesStore.remove(levelKey, v);
+        }
+      }catch(err){
+        console.warn(`[Tax] Falha ao excluir "${v}" do Supabase:`, err);
+      }
+
+      const cur = await loadTax(levelKey);
+      const next = cur.filter(x => x !== v);
+
+      const key = getTaxStorageKey(levelKey);
+      if (key) localStorage.setItem(key, JSON.stringify(next));
+
+      if (cleanStr(input.value) === v) {
+        input.value = "";
+        onChange && onChange();
+      }
+
+      await renderList(search.value);
+    });
+
+    listBox.appendChild(row);
   });
+}
 
-  listBox.appendChild(row);
-});
+    async function openPicker() {
+  dlg._taxCtx = { levelKey, input, onChange, prettyName };
 
-  }
+  title.textContent = prettyName;
+  search.value = "";
+  inpNew.value = "";
 
-    function openPicker() {
-    // >>> guarda qual picker está “ativo” agora
-    dlg._taxCtx = { levelKey, input, onChange, prettyName };
+  await renderList("");
 
-    title.textContent = prettyName;
-    search.value = "";
-    inpNew.value = "";
-
-    renderList("");
-
-    dlg.showModal();
-    setTimeout(() => search.focus(), 50);
-  }
+  dlg.showModal();
+  setTimeout(() => inpNew.focus(), 50);
+}
 
   // =========================================================
   // Handler GLOBAL do botão Adicionar / Enter (usa dlg._taxCtx)
@@ -244,23 +280,23 @@ items.forEach(v => {
   if (!dlg.dataset.taxGlobalBound) {
     dlg.dataset.taxGlobalBound = "1";
 
-    function addNewFromUI_Global() {
-      const ctx = dlg._taxCtx;
-      if (!ctx) return;
+    async function addNewFromUI_Global() {
+  const ctx = dlg._taxCtx;
+  if (!ctx) return;
 
-      const val = cleanStr(inpNew.value);
-      if (!val) return;
+  const val = cleanStr(inpNew.value);
+  if (!val) return;
 
-      const list = loadTax(ctx.levelKey);
-      if (!list.includes(val)) {
-        list.push(val);
-        saveTax(ctx.levelKey, list);
-      }
+  const list = await loadTax(ctx.levelKey);
+  if (!list.includes(val)) {
+    list.push(val);
+    await saveTax(ctx.levelKey, list);
+  }
 
-      ctx.input.value = val;
-      dlg.close();
-      ctx.onChange && ctx.onChange();
-    }
+  ctx.input.value = val;
+  dlg.close();
+  ctx.onChange && ctx.onChange();
+}
 
     btnCreate.addEventListener("click", addNewFromUI_Global);
 
@@ -280,16 +316,18 @@ items.forEach(v => {
 
     // botão + (se existir) abre o mesmo picker, já com foco no “novo valor”
   if (btnAdd) {
-    btnAdd.addEventListener("click", (ev) => {
-      ev.preventDefault();
-      openPicker();
-      setTimeout(() => inpNew.focus(), 80);
-    });
-  }
+  btnAdd.addEventListener("click", async (ev) => {
+    ev.preventDefault();
+    await openPicker();
+    setTimeout(() => inpNew.focus(), 80);
+  });
+}
 
 
   // busca
-  search.addEventListener("input", () => renderList(search.value));
+  search.addEventListener("input", async () => {
+  await renderList(search.value);
+});
 
   
 }
@@ -590,12 +628,31 @@ const isReadOnlyProducts = !canEditProducts && !canCreateProducts && !canMoveSto
 
 
     if (f.q) {
-      products = products.filter(p => {
-        const name = String(p.name || "").toLowerCase();
-        const sku = String(p.sku || "").toLowerCase();
-        return name.includes(f.q) || sku.includes(f.q);
-      });
-    }
+  products = products.filter(p => {
+    const name = String(p.name || "").toLowerCase();
+    const sku = String(p.sku || "").toLowerCase();
+    const cat = String(p.cat || "").toLowerCase();
+    const sub1 = String(p.sub1 || "").toLowerCase();
+    const sub2 = String(p.sub2 || "").toLowerCase();
+    const sub3 = String(p.sub3 || "").toLowerCase();
+
+    const flat = [name, cat, sub1, sub2, sub3, sku]
+      .join(" ")
+      .replaceAll("•", " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    return (
+      name.includes(f.q) ||
+      sku.includes(f.q) ||
+      cat.includes(f.q) ||
+      sub1.includes(f.q) ||
+      sub2.includes(f.q) ||
+      sub3.includes(f.q) ||
+      flat.includes(f.q)
+    );
+  });
+}
 
     if (f.status === "active" || f.status === "inactive") {
       products = products.filter(p => (p.status || "active") === f.status);
@@ -699,16 +756,23 @@ if (min > 0) {
 
   // clique em foto/nome abre modal view
   function bindTableClicks() {
-    const tbl = document.querySelector("#tblProducts");
-    if (!tbl || tbl.dataset.bound === "1") return;
-    tbl.dataset.bound = "1";
+  const tbl = document.querySelector("#tblProducts");
+  if (!tbl || tbl.dataset.bound === "1") return;
+  tbl.dataset.bound = "1";
 
-    tbl.addEventListener("click", (ev) => {
-      const el = ev.target.closest("[data-view]");
-      if (!el) return;
-      openProductView(el.getAttribute("data-view"));
-    });
-  }
+  tbl.addEventListener("click", (ev) => {
+    const el = ev.target.closest("[data-view]");
+    if (!el) return;
+
+    const canEditProducts = !!window.CoreAuth?.can?.("canEditProducts");
+
+    if (!canEditProducts) {
+      return;
+    }
+
+    openProductView(el.getAttribute("data-view"));
+  });
+}
 
   // =========================
   // Modal View/Edit Produto
@@ -1811,6 +1875,13 @@ return;
     const canCreateProducts = !!window.CoreAuth?.can?.("canCreateProducts");
 const canMoveStock = !!window.CoreAuth?.can?.("canMoveStock");
 
+const canEditProducts = !!window.CoreAuth?.can?.("canEditProducts");
+const tblProducts = document.querySelector("#tblProducts");
+
+if (tblProducts) {
+  tblProducts.classList.toggle("is-readonly", !canEditProducts);
+}
+
     if (!btnNewProduct || !dlgProduct || !btnNewMovement || !dlgMove) {
       console.warn("[Produtos] Elementos não encontrados. Verifique IDs no HTML.");
       return;
@@ -1823,6 +1894,9 @@ const canMoveStock = !!window.CoreAuth?.can?.("canMoveStock");
     bindTableClicks();
     bindFilters();
     bindSortHeaders();
+
+    syncProductsTableHeader();
+window.addEventListener("resize", syncProductsTableHeader);
 
     if (btnNewProduct) {
   btnNewProduct.disabled = !canCreateProducts;
@@ -1837,11 +1911,12 @@ if (btnNewMovement) {
     (async () => {
   try {
     const list = await window.ProductsStore.list({ limit: 1000 });
-setProducts(list);
+    setProducts(list);
   } catch (e) {
     console.error("[Produtos] Falha ao carregar do Supabase:", e);
   } finally {
     renderProductsTable(getFilters());
+    requestAnimationFrame(syncProductsTableHeader);
   }
 })();
 
@@ -1863,4 +1938,18 @@ setProducts(list);
   dlgMove.showModal();
 };
   };
+
+  function syncProductsTableHeader() {
+  const table = document.querySelector("#tblProducts");
+  if (!table) return;
+
+  const tbody = table.querySelector("tbody");
+  const wrap = document.querySelector(".products-table-wrap");
+
+  if (!tbody || !wrap) return;
+
+  const scrollbarWidth = Math.max(0, tbody.offsetWidth - tbody.clientWidth);
+  wrap.style.setProperty("--products-scrollbar-w", `${scrollbarWidth}px`);
+}
+
 })();

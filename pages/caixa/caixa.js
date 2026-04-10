@@ -317,6 +317,10 @@ async function syncCancelledSaleToSupabase(evt) {
     const items = meta.items || [];
     const pay = e.payments || {};
 
+    const freight = meta.freight || null;
+const freightValue = Number(freight?.value || 0);
+const freightReason = String(freight?.reason || "").trim();
+
     $saleViewTitle.textContent = `Detalhes da venda`;
 
     const money = (v) => Number(v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -371,6 +375,8 @@ if (cd  > 0) payLines.push(`<div>Débito: <b>${money(cd)}</b></div>`);
       <div class="sale-box">
         <div style="font-weight:900;margin-bottom:6px;">Pagamento</div>
         ${payLines.length ? payLines.join("") : `<div class="muted">Sem pagamentos registrados</div>`}
+        ${freightValue > 0 ? `<div>Frete: <b>${money(freightValue)}</b></div>` : ``}
+${freightReason ? `<div>Obs. frete: <b>${freightReason}</b></div>` : ``}
         <div style="margin-top:10px;">Total: <b>${money(e.total)}</b></div>
         <div>Custo: <b>${moneyOrMask(e.costTotal || 0)}</b></div>
         <div>Lucro bruto: <b>${moneyOrMask(meta.profitGross != null ? meta.profitGross : ((e.total||0)-(e.costTotal||0)))}</b></div>
@@ -395,15 +401,20 @@ if (cd  > 0) payLines.push(`<div>Débito: <b>${money(cd)}</b></div>`);
 
     // ===== DESCONTOS =====
     const discHtml = `
-      <div class="sale-box">
-        <div style="font-weight:900;margin-bottom:6px;">Descontos</div>
-        ${
-          discounts.length
-            ? discounts.map(d => `<div>• ${d.type === "percent" ? `${d.value}%` : money(d.value)} ${d.reason ? `— ${d.reason}` : ""}</div>`).join("")
-            : `<div class="muted">Nenhum desconto</div>`
-        }
-      </div>
-    `;
+  <div class="sale-box">
+    <div style="font-weight:900;margin-bottom:6px;">Descontos e adicionais</div>
+    ${
+      discounts.length
+        ? discounts.map(d => `<div>• ${d.type === "percent" ? `${d.value}%` : money(d.value)} ${d.reason ? `— ${d.reason}` : ""}</div>`).join("")
+        : `<div class="muted">Nenhum desconto</div>`
+    }
+    ${
+      freightValue > 0
+        ? `<div style="margin-top:8px;">• Frete: <b>${money(freightValue)}</b>${freightReason ? ` — ${freightReason}` : ""}</div>`
+        : ``
+    }
+  </div>
+`;
 
     // ===== CUSTOS OPERACIONAIS =====
 const opCosts = meta.operationalCosts || [];

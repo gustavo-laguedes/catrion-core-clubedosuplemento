@@ -63,16 +63,20 @@
 
         <div id="cartList" class="cart-list"></div>
 
-        <div class="cart-totals">
-          <div class="row">
-            <span>Subtotal</span>
-            <strong id="subtotalValue">R$ 0,00</strong>
-          </div>
-          <div class="row muted">
-            <span>Descontos</span>
-            <strong id="discountValue">R$ 0,00</strong>
-          </div>
-        </div>
+       <div class="cart-totals">
+  <div class="row">
+    <span>Subtotal</span>
+    <strong id="subtotalValue">R$ 0,00</strong>
+  </div>
+  <div class="row muted">
+    <span>Descontos</span>
+    <strong id="discountValue">R$ 0,00</strong>
+  </div>
+  <div class="row muted">
+    <span>Frete</span>
+    <strong id="freightValueCart">R$ 0,00</strong>
+  </div>
+</div>
       </div>
     </aside>
   </div>
@@ -82,9 +86,10 @@
 <!-- Dock fixo (rodapé) -->
 <footer class="sale-dock">
   <div class="dock-actions">
-    <button id="btnDiscount" class="btn-soft" type="button">Aplicar Desconto</button>
-    <button id="btnCheckout" class="btn-primary" type="button">Finalizar Venda</button>
-  </div>
+  <button id="btnDiscount" class="btn-soft" type="button">Aplicar Desconto</button>
+  <button id="btnFreight" class="btn-soft" type="button">Aplicar Frete</button>
+  <button id="btnCheckout" class="btn-primary" type="button">Finalizar Venda</button>
+</div>
 
   <div class="dock-total">
     <div class="dock-label">Total</div>
@@ -108,7 +113,7 @@
 
       <div class="field">
         <label>Desconto</label>
-        <input id="discountInput" type="number" inputmode="decimal" placeholder="0" />
+        <input id="discountInput" type="text" inputmode="numeric" placeholder="0,00" />
       </div>
     </div>
 
@@ -149,6 +154,30 @@
   </div>
 </div>
 
+
+<!-- Modal Frete -->
+<div id="freightModal" class="modal hidden">
+  <div class="modal-box">
+    <div class="modal-title">Aplicar Frete</div>
+
+    <div class="field">
+      <label>Valor do frete</label>
+      <input id="freightInput" type="text" inputmode="numeric" placeholder="0,00" />
+    </div>
+
+    <div class="field">
+      <label>Observação</label>
+      <input id="freightReason" type="text" placeholder="Ex.: entrega via motoboy" maxlength="80" />
+    </div>
+
+    <div class="modal-actions">
+      <button id="btnFreightCancel" class="btn-ghost">Cancelar</button>
+      <button id="btnFreightApply" class="btn-confirm">Aplicar frete</button>
+    </div>
+  </div>
+</div>
+
+
 <!-- Modal Pagamento -->
 <div id="payModal" class="modal hidden">
   <div class="modal-box">
@@ -157,7 +186,7 @@
     <div class="pay-total">
       <div class="pay-label">Valor a pagar</div>
       <div class="pay-value" id="payTotal">R$ 0,00</div>
-      <div class="pay-mini" id="payMini">Subtotal R$ 0,00 • Desconto R$ 0,00</div>
+      <div class="pay-mini" id="payMini">Subtotal R$ 0,00 • Desconto R$ 0,00 • Frete R$ 0,00</div>
     </div>
 
     <!-- Split (pagamento dividido) -->

@@ -2,10 +2,13 @@
   <header class="today-head">
     <div>
       <h1 class="today-title">Painel do dia</h1>
-      <p class="today-subtitle">Tudo que importa hoje, sem perfumaria cósmica.</p>
+      <p class="today-subtitle">Tudo que importa hoje, em uma única tela.</p>
     </div>
 
-    <div class="today-badge" id="todayDateBadge">—</div>
+    <div class="today-date-anchor">
+  <button class="today-badge today-badge--button" id="todayDateBadge" type="button" title="Selecionar data">—</button>
+  <input type="date" id="todayDateInput" class="today-date-native">
+</div>
   </header>
 
   <section class="today-kpis three-kpis">

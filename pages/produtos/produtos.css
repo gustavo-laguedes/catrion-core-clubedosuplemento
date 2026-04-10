@@ -9,6 +9,7 @@
   --pd-sub: #64748b;
   --pd-line: rgba(15,23,42,.08);
   --pd-head: rgba(15,23,42,.035);
+  --pd-head-solid: #f3f4f6;
   --pd-white: rgba(255,255,255,.82);
   --pd-white-2: rgba(255,255,255,.70);
   --pd-blue: #1d4ed8;
@@ -27,6 +28,9 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
+  height: calc(100vh - 84px);
+  min-height: 0;
+  overflow: hidden;
 }
 
 .muted{
@@ -139,6 +143,10 @@
   background: var(--pd-white);
   box-shadow: 0 14px 28px rgba(15,23,42,.05);
   overflow: hidden;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .products-table{
@@ -149,8 +157,50 @@
 }
 
 .products-table thead,
+.products-table tbody{
+  display: block;
+}
+
+.products-table thead{
+  flex: 0 0 auto;
+}
+
+.products-table tbody{
+  display: block;
+  overflow-y: auto;
+  overflow-x: hidden;
+  max-height: calc(100vh - 300px);
+}
+
+.products-table thead tr,
+.products-table tbody tr{
+  display: table;
+  width: 100%;
+  table-layout: fixed;
+}
+
+.products-table thead{
+  display: block;
+  width: 100%;
+  background: var(--pd-head-solid);
+  position: relative;
+}
+
+.products-table thead::after{
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: var(--products-scrollbar-w, 0px);
+  height: 100%;
+  background: var(--pd-head-solid);
+}
+
 .products-table thead tr{
-  background: var(--pd-head);
+  display: table;
+  width: calc(100% - var(--products-scrollbar-w, 0px));
+  table-layout: fixed;
+  background: var(--pd-head-solid);
 }
 
 .products-table thead th{
@@ -168,6 +218,13 @@
   text-align: center;
   color: #334155;
   font-weight: 800;
+}
+
+.products-table thead th{
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  background: var(--pd-head-solid);
 }
 
 .products-table thead th:first-child{
@@ -370,22 +427,18 @@
   text-align: center;
   padding-right: 0;
   padding-left: 65px;
-  background: transparent;
-  z-index: 5;
+  background: var(--pd-head-solid);
+  z-index: 6;
 }
 
 .products-table tbody td.actions{
-  background: transparent;
+  background: #ffffff;
   overflow: visible;
   border-bottom: none;
 }
 
 .products-table tbody tr:hover td.actions{
-  background: transparent;
-}
-
-.products-table tbody tr:hover td:not(.actions){
-  background: transparent;
+  background: rgba(20,90,255,.06) !important;
 }
 
 .products-table td.actions::after{
@@ -1248,7 +1301,7 @@
 
 /* remove qualquer transparência que esteja atrapalhando */
 .products-table tbody td{
-  background: transparent;
+  background: #ffffff;
 }
 
 /* força a coluna sticky a seguir igual */
@@ -1268,7 +1321,7 @@
   content: "";
   position: absolute;
   left: 0;
-  width: 100%; /* aqui você controla */
+  right: 10px;
   bottom: 0;
   height: 1px;
   background: rgba(15,23,42,.06);
@@ -1571,5 +1624,154 @@
     margin-left: 3px;
     position: relative;
     left: -1px;
+  }
+}
+
+.products-table thead th.actions{
+  position: sticky;
+  top: 0;
+  right: 0;
+  z-index: 6;
+  background: var(--pd-head-solid);
+}
+
+.products-table tbody td.actions{
+  position: sticky;
+  right: 0;
+  z-index: 3;
+  background: #ffffff;
+}
+
+.products-table tbody tr{
+  position: relative;
+  width: 100%;
+}
+
+.products-table tbody{
+  scrollbar-gutter: stable;
+}
+
+/* ===== ajuste final da linha horizontal dos produtos ===== */
+.products-table tbody tr::after{
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 2px;
+  bottom: 0;
+  height: 1px;
+  background: rgba(15,23,42,.06);
+  z-index: 5;
+  pointer-events: none;
+}
+
+.products-table tbody td{
+  position: relative;
+  z-index: 1;
+}
+
+.products-table tbody td.actions{
+  position: sticky;
+  right: 0;
+  z-index: 3;
+  background: #ffffff;
+  box-shadow: inset 0 -1px 0 rgba(15,23,42,.06);
+}
+
+.products-table tbody tr:last-child::after{
+  display: none;
+}
+
+.products-table.is-readonly td.name-cell,
+.products-table.is-readonly td.thumb-cell{
+  cursor: default;
+}
+
+.products-table.is-readonly td.name-cell:hover{
+  text-decoration: none;
+}
+
+/* ===== modais de produto mais elegantes em telas menores ===== */
+#dlgProduct .modal-card,
+#dlgProductView .modal-card{
+  max-height: min(88vh, 920px);
+  display: flex;
+  flex-direction: column;
+}
+
+#dlgProduct .modal-head,
+#dlgProductView .modal-head{
+  flex: 0 0 auto;
+}
+
+#dlgProduct .modal-body,
+#dlgProductView .modal-body{
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-gutter: stable;
+  padding-right: 16px;
+}
+
+#dlgProduct .modal-foot,
+#dlgProductView .modal-foot{
+  flex: 0 0 auto;
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  background: rgba(255,255,255,.96);
+  backdrop-filter: blur(8px);
+}
+
+#dlgProduct .modal-body::-webkit-scrollbar,
+#dlgProductView .modal-body::-webkit-scrollbar{
+  width: 10px;
+}
+
+#dlgProduct .modal-body::-webkit-scrollbar-track,
+#dlgProductView .modal-body::-webkit-scrollbar-track{
+  background: transparent;
+}
+
+#dlgProduct .modal-body::-webkit-scrollbar-thumb,
+#dlgProductView .modal-body::-webkit-scrollbar-thumb{
+  background: rgba(15,23,42,.18);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+#dlgProduct .modal-body::-webkit-scrollbar-thumb:hover,
+#dlgProductView .modal-body::-webkit-scrollbar-thumb:hover{
+  background: rgba(15,23,42,.28);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+@media (max-width: 1440px){
+  #dlgProduct .modal-card,
+  #dlgProductView .modal-card{
+    width: min(920px, 96vw);
+    max-height: 90vh;
+  }
+
+  #dlgProduct .modal-body,
+  #dlgProductView .modal-body{
+    padding-right: 12px;
+  }
+}
+
+@media (max-width: 980px){
+  #dlgProduct .modal-card,
+  #dlgProductView .modal-card{
+    width: min(96vw, 96vw);
+    max-height: 92vh;
+    border-radius: 16px;
+  }
+
+  #dlgProduct .modal-body.grid,
+  #dlgProductView .modal-body.grid{
+    grid-template-columns: 1fr !important;
+    gap: 14px;
   }
 }

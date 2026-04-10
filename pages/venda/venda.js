@@ -27,8 +27,12 @@ const canEditCustomer = !!window.CoreAuth?.can?.("canCreateCustomer");
   const discountEl      = $("discountValue");
   const totalEl         = $("totalValue");
 
+  const freightEl       = $("freightValueCart");
+
   const btnDiscount     = $("btnDiscount");
   const btnCheckout     = $("btnCheckout");
+
+  const btnFreight      = $("btnFreight");
 
   const discountModal   = $("discountModal");
   const discountType    = $("discountType");
@@ -37,6 +41,12 @@ const canEditCustomer = !!window.CoreAuth?.can?.("canCreateCustomer");
   const discountList    = $("discountList");
   const btnDiscountCancel = $("btnDiscountCancel");
   const btnDiscountApply  = $("btnDiscountApply");
+
+  const freightModal      = $("freightModal");
+const freightInput      = $("freightInput");
+const freightReason     = $("freightReason");
+const btnFreightCancel  = $("btnFreightCancel");
+const btnFreightApply   = $("btnFreightApply");
 
   const couponSearch    = $("couponSearch");
 const couponSavedList = $("couponSavedList");
@@ -282,6 +292,20 @@ function renderSaleDoneSummary(sale){
 
       <div class="receipt-hr"></div>
 
+      ${Number(sale.freight?.value || 0) > 0 ? `
+  <div class="receipt-line">
+    <span>Frete</span>
+    <span>${brl(Number(sale.freight.value || 0))}</span>
+  </div>
+  ${sale.freight?.reason ? `
+    <div class="receipt-line">
+      <span>Obs. frete</span>
+      <span>${sale.freight.reason}</span>
+    </div>
+  ` : ``}
+` : ``}
+
+
       <div class="receipt-line total-strong">
   <span>Total pago</span>
   <span>${brl(sale.total)}</span>
@@ -435,6 +459,11 @@ if (cashNet || cashGiven){
 ${(() => {
   // descontos podem vir direto ou dentro do meta (reimpressão)
   const ds = (sale.discounts ?? sale.meta?.discounts ?? []);
+
+  const fr = sale.freight ?? sale.meta?.freight ?? null;
+const freightValue = Number(fr?.value || 0);
+const freightReason = String(fr?.reason || "").trim();
+
   const sub = (sale.items || []).reduce((s, it) => s + (Number(it.price||0) * Number(it.qty||0)), 0);
   const disc = (ds || []).reduce((s, d) => {
     const type = String(d.type || "").toLowerCase();
@@ -473,16 +502,19 @@ ${(() => {
 return `
   <div class="row"><span>Subtotal</span><span>${brl(sub)}</span></div>
 
-  ${hasDiscount ? `<div class="row"><span>Desconto</span><span>- ${brl(discount)}</span></div>` : ``}
+${hasDiscount ? `<div class="row"><span>Desconto</span><span>- ${brl(discount)}</span></div>` : ``}
 
-  ${details.map(x => `
-    <div class="row">
-      <span class="muted">Desc. ${x.label}${x.motivo}</span>
-      <span class="muted">- ${brl(x.discValue)}</span>
-    </div>
-  `).join("")}
+${details.map(x => `
+  <div class="row">
+    <span class="muted">Desc. ${x.label}${x.motivo}</span>
+    <span class="muted">- ${brl(x.discValue)}</span>
+  </div>
+`).join("")}
 
-  <div class="row"><span><b>Total</b></span><span><b>${brl(sale.total)}</b></span></div>
+${freightValue > 0 ? `<div class="row"><span>Frete</span><span>${brl(freightValue)}</span></div>` : ``}
+${freightReason ? `<div class="row"><span class="muted">Obs. frete</span><span class="muted">${freightReason}</span></div>` : ``}
+
+<div class="row"><span><b>Total</b></span><span><b>${brl(sale.total)}</b></span></div>
 `;
 
 })()}
@@ -1081,8 +1113,26 @@ function repoFind(q){
 
     const name = String(p.name || "").toLowerCase();
     const sku  = String(p.sku || "").toLowerCase();
+    const cat  = String(p.cat || "").toLowerCase();
+    const sub1 = String(p.sub1 || "").toLowerCase();
+    const sub2 = String(p.sub2 || "").toLowerCase();
+    const sub3 = String(p.sub3 || "").toLowerCase();
 
-    if (name.includes(s) || sku.includes(s)){
+    const flat = [name, cat, sub1, sub2, sub3, sku]
+      .join(" ")
+      .replaceAll("•", " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    if (
+      name.includes(s) ||
+      sku.includes(s) ||
+      cat.includes(s) ||
+      sub1.includes(s) ||
+      sub2.includes(s) ||
+      sub3.includes(s) ||
+      flat.includes(s)
+    ){
       out.push(mapProductForSale(p));
       if (out.length >= 20) break;
     }
@@ -1103,6 +1153,11 @@ function repoGetById(id){
   // desconto aplicado (mock)
   let discounts = []; // [{ id, type, value, reason }]
 
+  let freight = {
+  value: 0,
+  reason: ""
+};
+
     let coupons = [];
 let editingCouponId = null;
 
@@ -1111,7 +1166,40 @@ let editingCouponId = null;
 
 
   const brl = (n) => n.toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
+
+  function formatCurrencyInput(input){
+  if (!input) return;
+
+  let value = String(input.value || "").replace(/\D/g, "");
+
+  if (!value) {
+    input.value = "";
+    return;
+  }
+
+  const number = Number(value) / 100;
+
+  input.value = number.toLocaleString("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+}
+
+function parseCurrencyInput(value){
+  if (!value) return 0;
+
+  return Number(
+    value
+      .replace(/\./g, "")   // remove milhar
+      .replace(",", ".")    // troca decimal
+  );
+}
+
   const subtotal = () => Object.values(cart).reduce((s,it)=>s + it.product.price * it.qty, 0);
+
+  function freightAmount(){
+  return Math.max(Number(freight?.value || 0), 0);
+}
 
   function discountAmount(){
   const sub = subtotal();
@@ -1140,8 +1228,8 @@ let editingCouponId = null;
 
 
   function total(){
-    return Math.max(subtotal() - discountAmount(), 0);
-  }
+  return Math.max(subtotal() - discountAmount() + freightAmount(), 0);
+}
 
   function clearResults(){ resultsEl.innerHTML = ""; }
 
@@ -1182,10 +1270,11 @@ let editingCouponId = null;
 
     if (!items.length){
       cartEl.innerHTML = `<div class="cart-empty">Carrinho vazio.</div>`;
-      subtotalEl.textContent = brl(0);
-      discountEl.textContent = brl(0);
-      totalEl.textContent = brl(0);
-      return;
+subtotalEl.textContent = brl(0);
+discountEl.textContent = brl(0);
+if (freightEl) freightEl.textContent = brl(freightAmount());
+totalEl.textContent = brl(total());
+return;
     }
 
     cartEl.innerHTML = items.map(it => `
@@ -1215,8 +1304,9 @@ let editingCouponId = null;
     cartEl.querySelectorAll("[data-rm]").forEach(b  => b.addEventListener("click", (e) => { e.stopPropagation(); remove(b.getAttribute("data-rm")); }));
 
     subtotalEl.textContent = brl(subtotal());
-    discountEl.textContent = brl(discountAmount());
-    totalEl.textContent = brl(total());
+discountEl.textContent = brl(discountAmount());
+if (freightEl) freightEl.textContent = brl(freightAmount());
+totalEl.textContent = brl(total());
   }
 
   function addToCart(pid){
@@ -1424,8 +1514,19 @@ function fillCouponForm(coupon){
   editingCouponId = coupon.id;
 
   if (discountType) discountType.value = coupon.kind || "value";
-  if (discountInput) discountInput.value = String(coupon.value || 0);
-  if (discountReason) discountReason.value = coupon.code || coupon.note || "";
+
+if (discountInput) {
+  if ((coupon.kind || "value") === "value") {
+    discountInput.value = Number(coupon.value || 0).toLocaleString("pt-BR", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+  } else {
+    discountInput.value = String(coupon.value || 0);
+  }
+}
+
+if (discountReason) discountReason.value = coupon.code || coupon.note || "";
 
   setCouponFormMode("edit");
 }
@@ -1584,7 +1685,9 @@ async function openDiscount(){
 
   function applyDiscount(){
   const type = discountType.value;
-  const value = Number(String(discountInput.value || "0").replace(",", "."));
+  const value = discountType.value === "value"
+  ? parseCurrencyInput(discountInput.value)
+  : Number(String(discountInput.value || "0").replace(",", "."));
   const reason = (discountReason.value || "").trim();
 
   if (!value || value <= 0){
@@ -1610,6 +1713,42 @@ async function openDiscount(){
   function closeDiscount(){
     discountModal.classList.add("hidden");
   }
+
+  function openFreight(){
+  freightModal.classList.remove("hidden");
+  freightInput.value = freight.value
+    ? Number(freight.value).toLocaleString("pt-BR", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      })
+    : "";
+  freightReason.value = freight.reason || "";
+  setTimeout(() => freightInput.focus(), 50);
+}
+
+function closeFreight(){
+  freightModal.classList.add("hidden");
+}
+
+function applyFreight(){
+  const value = parseCurrencyInput(freightInput.value);
+  const reason = String(freightReason.value || "").trim();
+
+  if (value < 0){
+    alert("Informe um valor de frete válido.");
+    return;
+  }
+
+  freight = {
+    value,
+    reason
+  };
+
+  log("SALE_FREIGHT_APPLY", { value, reason });
+
+  renderCart();
+  closeFreight();
+}
 
 
     const methodLabel = (m) => ({
@@ -1856,7 +1995,7 @@ async function refreshCashGateUI(){
 
   // atualiza valores
   payTotalEl.textContent = brl(total());
-  payMiniEl.textContent = `Subtotal ${brl(subtotal())} • Desconto ${brl(discountAmount())}`;
+  payMiniEl.textContent = `Subtotal ${brl(subtotal())} • Desconto ${brl(discountAmount())} • Frete ${brl(freightAmount())}`;
 
   // reset split
   splits = [];
@@ -2163,6 +2302,10 @@ const saleRes = await window.SalesStore.createSaleWithItems({
     value: d.value,
     reason: d.reason || ""
   })),
+  freight: {
+    value: freightAmount(),
+    reason: freight.reason || ""
+  },
   cardMeta: splits
     .filter(s => s.method === "credit" || s.method === "debit")
     .map(s => ({
@@ -2201,6 +2344,11 @@ const cashRes = window.CoreCash.registerSale({
       value: d.value,
       reason: d.reason || ""
     })),
+
+    freight: {
+    value: freightAmount(),
+    reason: freight.reason || ""
+  },
 
     items: Object.values(cart).map(it => ({
       productId: it.product.id,
@@ -2302,6 +2450,11 @@ discounts: (discounts || []).map(d => ({
   reason: d.reason || ""
 })),
 
+freight: {
+    value: freightAmount(),
+    reason: freight.reason || ""
+  },
+
 
   total: t,
   costTotal,
@@ -2323,6 +2476,7 @@ changeCash: round2(changeCash),
 Object.keys(cart).forEach(k => delete cart[k]);
 discounts = [];
 splits = [];
+freight = { value: 0, reason: "" };
 selectedCustomer = null;
 clearCustomer();
 
@@ -2395,6 +2549,21 @@ btnPayConfirm.disabled = false;
   });
 
   btnDiscount?.addEventListener("click", openDiscount);
+  btnFreight?.addEventListener("click", openFreight);
+
+  discountInput?.addEventListener("input", () => {
+  if (discountType?.value !== "value") return;
+  formatCurrencyInput(discountInput);
+});
+
+freightInput?.addEventListener("input", () => {
+  formatCurrencyInput(freightInput);
+});
+
+discountType?.addEventListener("change", () => {
+  discountInput.value = "";
+  setTimeout(() => discountInput?.focus(), 20);
+});
 
 btnCheckout?.addEventListener("click", async () => {
   if (!canCompleteSale) {
@@ -2404,9 +2573,17 @@ btnCheckout?.addEventListener("click", async () => {
   await openPay();
 });
 
+
   // modal desconto
   btnDiscountCancel?.addEventListener("click", closeDiscount);
   btnDiscountApply?.addEventListener("click", applyDiscount);
+
+  btnFreightCancel?.addEventListener("click", closeFreight);
+btnFreightApply?.addEventListener("click", applyFreight);
+
+freightModal?.addEventListener("click", (e) => {
+  if (e.target === freightModal) closeFreight();
+});
 
 couponSearch?.addEventListener("input", () => {
   const q = String(couponSearch.value || "").trim().toLowerCase();
@@ -2426,7 +2603,9 @@ btnCouponSave?.addEventListener("click", async () => {
   }
   const code = String(discountReason.value || "").trim();
   const kind = discountType.value;
-  const value = Number(String(discountInput.value || "0").replace(",", "."));
+  const value = kind === "value"
+  ? parseCurrencyInput(discountInput.value)
+  : Number(String(discountInput.value || "0").replace(",", "."));
 
   if (!code){
     alert("Informe o nome/código do cupom no campo Motivo.");

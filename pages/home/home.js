@@ -11,6 +11,8 @@ window.CorePageModules.home = function () {
     "#84cc16"
   ];
 
+    let selectedDate = new Date();
+
   function moneyBR(v) {
     const n = Number(v || 0);
     return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -30,20 +32,39 @@ window.CorePageModules.home = function () {
     }).format(date);
   }
 
-  function startOfToday() {
-    const now = new Date();
-    return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+    function startOfDay(baseDate = new Date()) {
+    const d = toDateSafe(baseDate) || new Date();
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0);
   }
 
-  function endOfToday() {
-    const now = new Date();
-    return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+  function endOfDay(baseDate = new Date()) {
+    const d = toDateSafe(baseDate) || new Date();
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999);
   }
 
-  function isToday(value) {
+  function isSameSelectedDay(value) {
     const d = toDateSafe(value);
     if (!d) return false;
-    return d >= startOfToday() && d <= endOfToday();
+    return d >= startOfDay(selectedDate) && d <= endOfDay(selectedDate);
+  }
+
+  function toInputDateValue(date) {
+    const d = toDateSafe(date) || new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  }
+
+  function isActualToday(date) {
+    const base = toDateSafe(date) || new Date();
+    const now = new Date();
+
+    return (
+      base.getFullYear() === now.getFullYear() &&
+      base.getMonth() === now.getMonth() &&
+      base.getDate() === now.getDate()
+    );
   }
 
   function getSaleDate(sale) {
@@ -145,13 +166,13 @@ function isSaleCancelled(sale) {
   async function loadTodaySalesSafe() {
     try {
       if (window.SalesStore?.list) {
-        const rows = await window.SalesStore.list({
-  limit: 1000,
-  orderBy: "created_at",
-  ascending: false,
-  startDateISO: startOfToday().toISOString(),
-  endDateISO: endOfToday().toISOString()
-});
+                const rows = await window.SalesStore.list({
+          limit: 1000,
+          orderBy: "created_at",
+          ascending: false,
+          startDateISO: startOfDay(selectedDate).toISOString(),
+          endDateISO: endOfDay(selectedDate).toISOString()
+        });
 
         return Array.isArray(rows) ? rows : [];
       }
@@ -164,7 +185,7 @@ function isSaleCancelled(sale) {
       try {
         const parsed = JSON.parse(localStorage.getItem(key) || "[]");
         if (Array.isArray(parsed)) {
-          return parsed.filter((sale) => isToday(getSaleDate(sale)));
+                    return parsed.filter((sale) => isSameSelectedDay(getSaleDate(sale)));
         }
       } catch {}
     }
@@ -393,11 +414,46 @@ function getPayableStatus(item) {
   return { overdue, today: dueToday, upcoming };
 }
 
-  function renderDateBadge() {
+    function renderDateBadge() {
     const badge = document.getElementById("todayDateBadge");
-    if (badge) {
-      badge.textContent = `Hoje • ${formatDateBR(new Date())}`;
+    const input = document.getElementById("todayDateInput");
+    if (!badge) return;
+
+    const label = isActualToday(selectedDate) ? "Hoje" : "Data";
+    badge.textContent = `${label} • ${formatDateBR(selectedDate)}`;
+
+    if (input) {
+      input.value = toInputDateValue(selectedDate);
     }
+  }
+
+    function bindDatePicker() {
+    const badge = document.getElementById("todayDateBadge");
+    const input = document.getElementById("todayDateInput");
+
+    if (!badge || !input || badge.dataset.bound === "1") return;
+    badge.dataset.bound = "1";
+
+    badge.addEventListener("click", () => {
+      input.value = toInputDateValue(selectedDate);
+
+      if (typeof input.showPicker === "function") {
+        input.showPicker();
+      } else {
+        input.click();
+      }
+    });
+
+    input.addEventListener("change", () => {
+      if (!input.value) return;
+
+      const [y, m, d] = input.value.split("-").map(Number);
+      if (!y || !m || !d) return;
+
+      selectedDate = new Date(y, m - 1, d, 12, 0, 0, 0);
+      renderDateBadge();
+      rerenderHome();
+    });
   }
 
   async function renderTopKpis(validSales, cancelledSales = []) {
@@ -720,8 +776,9 @@ const key =
   .join("");
   }
 
-  async function renderHome() {
+    async function renderHome() {
     renderDateBadge();
+    bindDatePicker();
 
     const sales = await loadTodaySalesSafe();
 

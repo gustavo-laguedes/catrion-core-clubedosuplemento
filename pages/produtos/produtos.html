@@ -188,20 +188,19 @@
   </label>
 
   <label>
-    <span>Subcategoria</span>
-    <input id="pv_sub1" class="inp pv-inp" placeholder="Selecione..." readonly style="cursor:pointer;">
-  </label>
+  <span>Marca</span>
+  <input id="pv_sub1" class="inp pv-inp" placeholder="Selecione..." readonly style="cursor:pointer;">
+</label>
 
-  <!-- LINHA 2 -->
-  <label>
-    <span>Subcategoria 1</span>
-    <input id="pv_sub2" class="inp pv-inp" placeholder="Selecione..." readonly style="cursor:pointer;">
-  </label>
+<label>
+  <span>Sabor</span>
+  <input id="pv_sub2" class="inp pv-inp" placeholder="Selecione..." readonly style="cursor:pointer;">
+</label>
 
-  <label>
-    <span>Subcategoria 2</span>
-    <input id="pv_sub3" class="inp pv-inp" placeholder="Selecione..." readonly style="cursor:pointer;">
-  </label>
+<label>
+  <span>Tamanho</span>
+  <input id="pv_sub3" class="inp pv-inp" placeholder="Selecione..." readonly style="cursor:pointer;">
+</label>
 
   <!-- LINHA 3 (full) -->
   <label class="full">
@@ -450,17 +449,16 @@
     </header>
 
     <div class="modal-body tax-body">
-      <input class="inp" id="taxSearch" placeholder="Buscar..." autocomplete="off" />
+  <div class="tax-new">
+    <input class="inp" id="taxNewValue" placeholder="Novo valor..." autocomplete="off" />
+    <button class="btn" id="taxAdd" type="button">Adicionar</button>
+  </div>
 
-      <div class="tax-list" id="taxList"></div>
+  <input class="inp" id="taxSearch" placeholder="Buscar..." autocomplete="off" />
 
-      <div class="tax-new">
-        <input class="inp" id="taxNewValue" placeholder="Novo valor..." autocomplete="off" />
-        <button class="btn" id="taxAdd" type="button">Adicionar</button>
-      </div>
+  <div class="tax-list" id="taxList"></div>
 
-      <p class="muted mini">Dica: clique em um item para selecionar. Use “Adicionar” para criar um novo.</p>
-    </div>
+</div>
 
     <footer class="modal-foot">
       <div class="spacer"></div>
