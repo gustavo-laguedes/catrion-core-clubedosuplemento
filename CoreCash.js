@@ -127,27 +127,37 @@ async function syncCloseToSupabase(session) {
   try {
     if (!window.CashStore) return;
 
-    // se não tem remoteSessionId, não dá pra fechar remotamente
     if (!session?.remoteSessionId) return;
 
-    await window.CashStore.closeSession({
-      sessionId: session.remoteSessionId,
-      closedBy: session.closedBy || "system",
-      closingCashCountedCents: Math.round(Number(session.finalAmount || 0) * 100),
-      note: session.notes || ""
-    });
+    const closeNoteObj = {
+  by: session.closedBy || "system",
+  saleId: null,
+  notes: session.notes || "",
+  meta: { notes: session.notes || "" },
+  total: null,
+  payments: null,
+  costTotal: null,
+  profit: null,
+  amount: Number(session.finalAmount || 0)
+};
 
-    // também registra evento CLOSE (opcional, mas eu gosto de ter)
-    await window.CashStore.addEvent({
-      sessionId: session.remoteSessionId,
-      kind: "CLOSE",
-      amountCents: Math.round(Number(session.finalAmount || 0) * 100),
-      by: session.closedBy || "system",
-      meta: { notes: session.notes || "" }
-    });
+await window.CashStore.addEvent({
+  sessionId: session.remoteSessionId,
+  kind: "CLOSE",
+  amountCents: Math.round(Number(session.finalAmount || 0) * 100),
+  note: JSON.stringify(closeNoteObj)
+});
+
+await window.CashStore.closeSession({
+  sessionId: session.remoteSessionId,
+  closedBy: session.closedBy || "system",
+  closingCashCountedCents: Math.round(Number(session.finalAmount || 0) * 100),
+  note: session.notes || ""
+});
   } catch (e) {
-    console.warn("[CoreCash] Falha ao fechar sessão no Supabase (mantendo local):", e);
-  }
+  console.error("[CoreCash] ERRO AO SALVAR CLOSE NO SUPABASE:", e);
+  throw e;
+}
 }
 
 // === Integração simples com Estoque (localStorage) ===
@@ -473,7 +483,6 @@ async function loadRemoteEvents(sessionId) {
 }
 
 
-
   function addEvent(evt) {
     const events = loadEvents();
     events.unshift(evt); // mais recente primeiro
@@ -729,7 +738,7 @@ syncEnsureRemoteSession(session).then(() => {
       return { ok: true, session };
     },
 
-    close({ finalAmount = 0, by = "system", notes = "" } = {}) {
+    async close({ finalAmount = 0, by = "system", notes = "" } = {}) {
       const session = loadSession();
       if (!session || !session.isOpen) {
         return { ok: false, reason: "Não existe caixa aberto para fechar.", session: session || null };
@@ -752,10 +761,9 @@ syncEnsureRemoteSession(session).then(() => {
         meta: { notes: notes || "" }
       });
 
-      // fire-and-forget: fecha remoto
-syncCloseToSupabase(session);
+  await syncCloseToSupabase(session);
 
-      return { ok: true, session };
+return { ok: true, session };
     },
 
     supply({ amount, by = "system", notes = "" } = {}) {
