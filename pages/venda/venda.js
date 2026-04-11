@@ -1097,7 +1097,7 @@ let PRODUCTS_RAW = [];
 let PRODUCTS_BY_ID = new Map();
 
 async function loadProductsCache(){
-  const list = await window.ProductsStore.list({ limit: 2000 });
+  const list = await window.ProductsStore.list({ limit: 5000, orderBy: "name", ascending: true });
   PRODUCTS_RAW = Array.isArray(list) ? list : [];
   PRODUCTS_BY_ID = new Map(PRODUCTS_RAW.map(p => [String(p.id), p]));
 }
@@ -1134,7 +1134,7 @@ function repoFind(q){
       flat.includes(s)
     ){
       out.push(mapProductForSale(p));
-      if (out.length >= 20) break;
+      if (out.length >= 100) break;
     }
   }
 

@@ -82,7 +82,7 @@ function appPatchToDb(patch) {
   return out;
 }
 
-  async function list({ limit = 200, orderBy = "created_at", ascending = false } = {}) {
+  async function list({ limit = 5000, orderBy = "name", ascending = true } = {}) {
   assertClient();
 
   return window.CatrionTenantContext.withTenant(async (tenantId) => {
