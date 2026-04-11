@@ -324,8 +324,13 @@ function loadEvents() {
 
 async function loadRemoteSession() {
   try {
-    if (!window.CashStore?.getLatestOpenSession) return null;
-    const row = await window.CashStore.getLatestOpenSession();
+    const getSessionFn =
+      window.CashStore?.getLatestSession ||
+      window.CashStore?.getLatestOpenSession;
+
+    if (!getSessionFn) return null;
+
+    const row = await getSessionFn();
     if (!row) return null;
 
     return {
@@ -336,9 +341,10 @@ async function loadRemoteSession() {
       notes: row.note || "",
       closedAt: row.closed_at || null,
       closedBy: row.closed_by || null,
-      finalAmount: row.closing_cash_counted_cents != null
-        ? Number(row.closing_cash_counted_cents || 0) / 100
-        : null,
+      finalAmount:
+        row.closing_cash_counted_cents != null
+          ? Number(row.closing_cash_counted_cents || 0) / 100
+          : null,
       remoteSessionId: row.id
     };
   } catch (e) {
