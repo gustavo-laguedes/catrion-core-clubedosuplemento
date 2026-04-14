@@ -2334,7 +2334,7 @@ draw();
     const btnClApply = document.getElementById("btnClApply");
     const clList = document.getElementById("clList");
 
-    aasync function draw(){
+    async function draw(){
   try{
       const s = parseDateInput(clStart.value) || start;
       const e = parseDateInput(clEnd.value) || end;
@@ -2644,7 +2644,6 @@ function sumByDay(list, start, end){
 }
 
 async function renderEstoque(){
-  saveReportRange(eStart.value, eEnd.value);
   const sb =
     window.sb ||
     window.supabase ||
@@ -2745,10 +2744,12 @@ async function renderEstoque(){
   }
 
   async function draw(){
-    try{
-      const startISO = startOfDayISO(eStart.value);
-      const endISO = nextDayStartISO(eEnd.value);
-      const selectedType = eType.value;
+  try{
+    saveReportRange(eStart.value, eEnd.value);
+
+    const startISO = startOfDayISO(eStart.value);
+    const endISO = nextDayStartISO(eEnd.value);
+    const selectedType = eType.value;
 
       let query = sb
         .from("v_stock_moves_ledger")
