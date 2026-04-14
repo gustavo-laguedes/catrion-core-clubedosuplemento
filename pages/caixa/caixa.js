@@ -852,49 +852,61 @@ if (isCancelled) {
   }
 
   async function confirmModal() {
-    if (!window.CoreCash) return;
+  if (!window.CoreCash) return;
 
-  
+  const val = Number($mValue.value || 0);
+  const notes = ($mNotes.value || "").trim();
+  const by = getOperatorName();
 
-
-    const val = Number($mValue.value || 0);
-    const notes = ($mNotes.value || "").trim();
-    const by = getOperatorName();
-
+  try {
     if (modalMode === "OPEN") {
-      const r = CoreCash.open({ initialAmount: val, by, notes });
-      if (!r.ok) alert(r.reason || "Não foi possível abrir o caixa.");
+      const r = await CoreCash.open({ initialAmount: val, by, notes });
+      if (!r?.ok) {
+        alert(r?.reason || "Não foi possível abrir o caixa.");
+        return;
+      }
       closeModal();
       await render();
       return;
     }
 
     if (modalMode === "CLOSE") {
-      const r = CoreCash.close({ finalAmount: val, by, notes });
-      if (!r.ok) alert(r.reason || "Não foi possível fechar o caixa.");
+      const r = await CoreCash.close({ finalAmount: val, by, notes });
+      if (!r?.ok) {
+        alert(r?.reason || "Não foi possível fechar o caixa.");
+        return;
+      }
       closeModal();
       await render();
       return;
     }
 
     if (modalMode === "SUPPLY") {
-      const r = CoreCash.supply({ amount: val, by, notes });
-      if (!r.ok) alert(r.reason || "Não foi possível lançar suprimento.");
+      const r = await CoreCash.supply({ amount: val, by, notes });
+      if (!r?.ok) {
+        alert(r?.reason || "Não foi possível lançar suprimento.");
+        return;
+      }
       closeModal();
       await render();
       return;
     }
 
     if (modalMode === "WITHDRAW") {
-      const r = CoreCash.withdraw({ amount: val, by, notes });
-      if (!r.ok) alert(r.reason || "Não foi possível lançar sangria.");
+      const r = await CoreCash.withdraw({ amount: val, by, notes });
+      if (!r?.ok) {
+        alert(r?.reason || "Não foi possível lançar sangria.");
+        return;
+      }
       closeModal();
       await render();
       return;
     }
-
-
+  } catch (err) {
+    console.error("[Caixa] erro ao confirmar modal:", err);
+    alert(err?.message || "Não foi possível concluir a operação.");
   }
+}
 
   function wire() {
     // filtro de data (Eventos)

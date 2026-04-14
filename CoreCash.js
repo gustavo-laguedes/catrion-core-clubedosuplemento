@@ -125,7 +125,7 @@ async function syncEventToSupabase(evt) {
 
 async function syncCloseToSupabase(session) {
   try {
-    if (!window.CashStore) return;
+    if (!window.CashStore) return true;
     if (!session?.remoteSessionId) return true;
 
     await window.CashStore.closeSession({
@@ -133,6 +133,25 @@ async function syncCloseToSupabase(session) {
       closedBy: session.closedBy || "system",
       closingCashCountedCents: Math.round(Number(session.finalAmount || 0) * 100),
       note: session.notes || ""
+    });
+
+    const closeNoteObj = {
+      by: session.closedBy || "system",
+      saleId: null,
+      notes: session.notes || "",
+      meta: { notes: session.notes || "" },
+      total: null,
+      payments: null,
+      costTotal: null,
+      profit: null,
+      amount: Number(session.finalAmount || 0)
+    };
+
+    await window.CashStore.addEvent({
+      sessionId: session.remoteSessionId,
+      kind: "CLOSE",
+      amountCents: Math.round(Number(session.finalAmount || 0) * 100),
+      note: JSON.stringify(closeNoteObj)
     });
 
     return true;
@@ -333,10 +352,12 @@ function eventFingerprint(evt) {
 function mergeEventsLists(localEvents = [], remoteEvents = []) {
   const map = new Map();
 
-  // remoto primeiro, local depois
-  // assim, se existir CLOSE só local, ele é preservado
   [...remoteEvents, ...localEvents].forEach((evt) => {
-    const key = evt?.id ? `id:${evt.id}` : `sig:${eventFingerprint(evt)}`;
+    const key =
+      evt?.type === "SALE"
+        ? `sale:${evt?.saleId || evt?.id || eventFingerprint(evt)}`
+        : `sig:${eventFingerprint(evt)}`;
+
     if (!map.has(key)) {
       map.set(key, evt);
     }
@@ -783,11 +804,7 @@ function getTodayEvents() {
       });
 
       // fire-and-forget: cria sessão no supabase e registra OPEN
-syncEnsureRemoteSession(session).then(() => {
-  // opcional: registra o OPEN como evento remoto também
-  const evtOpen = { type:"OPEN", amount: session.initialAmount, by, meta:{ notes: session.notes || "" } };
-  syncEventToSupabase(evtOpen);
-});
+syncEnsureRemoteSession(session);
 
       return { ok: true, session };
     },
