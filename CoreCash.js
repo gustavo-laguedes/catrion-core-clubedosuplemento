@@ -292,6 +292,14 @@ function isTodayISO(iso) {
   return isSameDayBR(iso, new Date().toISOString());
 }
 
+  function dayKeyFromISO(iso) {
+  const d = new Date(iso);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const da = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${da}`;
+}
+
 function canCancelEvent(evt) {
   if (!evt || evt.cancelledAt) return false;
 
@@ -419,6 +427,26 @@ async function loadRemoteSession() {
   } catch (e) {
     console.warn("[CoreCash] Falha ao carregar sessão remota:", e);
     return null;
+  }
+}
+
+async function loadRemoteEventsByDay(dayKey) {
+  try {
+    if (!window.CashStore?.listEventsByPeriod) return [];
+
+    const start = `${dayKey}T00:00:00.000Z`;
+    const end = `${dayKey}T23:59:59.999Z`;
+
+    const rows = await window.CashStore.listEventsByPeriod({
+      dateFrom: start,
+      dateTo: end,
+      limit: 1000
+    });
+
+    return (rows || []).map(mapRemoteEvent);
+  } catch (e) {
+    console.warn("[CoreCash] erro ao buscar eventos por dia:", e);
+    return [];
   }
 }
 
@@ -761,6 +789,21 @@ function getTodayEvents() {
 
   return localEvents;
 },
+
+  async getEventsByDay(dayKey) {
+  const localEvents = loadEvents().filter(e => {
+    return e.at && dayKeyFromISO(e.at) === dayKey;
+  });
+
+  const remoteEvents = await loadRemoteEventsByDay(dayKey);
+
+  if (remoteEvents.length) {
+    return mergeEventsLists(localEvents, remoteEvents);
+  }
+
+  return localEvents;
+},
+
     canCancelEvent(event){
   return canCancelEvent(event);
 },

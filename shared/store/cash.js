@@ -146,12 +146,35 @@
     return rows || [];
   });
 }
+
+async function listEventsByPeriod({ dateFrom, dateTo, limit = 1000 } = {}) {
+  assertClient();
+
+  return window.CatrionTenantContext.withTenant(async (tenantId) => {
+    let query = window.sb
+      .from("cash_events")
+      .select("*")
+      .eq("tenant_id", tenantId)
+      .order("created_at", { ascending: false })
+      .limit(limit);
+
+    if (dateFrom) query = query.gte("created_at", dateFrom);
+    if (dateTo) query = query.lte("created_at", dateTo);
+
+    const { data: rows, error } = await query;
+    if (error) throw error;
+
+    return rows || [];
+  });
+}
+
  window.CashStore = {
   openSession,
   closeSession,
   getLatestOpenSession,
   getLatestSession,
   addEvent,
-  listEvents
+  listEvents,
+  listEventsByPeriod // 👈 NOVO
 };
 })();

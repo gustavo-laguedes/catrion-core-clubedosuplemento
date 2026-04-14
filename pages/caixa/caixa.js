@@ -153,8 +153,13 @@ function todayKey(){
 }
 
 async function getFilteredEvents(core){
-  const events = await core?.getEvents?.() || [];
   const selected = ($eventsDate && $eventsDate.value) ? $eventsDate.value : todayKey();
+
+  if (core?.getEventsByDay) {
+    return await core.getEventsByDay(selected);
+  }
+
+  const events = await core?.getEvents?.() || [];
   return events.filter(e => dayKeyFromISO(e.at) === selected);
 }
 
