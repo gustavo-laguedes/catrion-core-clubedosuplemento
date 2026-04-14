@@ -126,9 +126,8 @@ async function syncEventToSupabase(evt) {
 async function syncCloseToSupabase(session) {
   try {
     if (!window.CashStore) return;
-    if (!session?.remoteSessionId) return;
+    if (!session?.remoteSessionId) return true;
 
-    // 1. fecha a sessão remota primeiro
     await window.CashStore.closeSession({
       sessionId: session.remoteSessionId,
       closedBy: session.closedBy || "system",
@@ -136,8 +135,6 @@ async function syncCloseToSupabase(session) {
       note: session.notes || ""
     });
 
-    // 2. não tenta mais gravar CLOSE em cash_events
-    // o fechamento passa a ser representado pela própria cash_sessions
     return true;
   } catch (e) {
     console.error("[CoreCash] ERRO AO FECHAR SESSÃO NO SUPABASE:", e);
