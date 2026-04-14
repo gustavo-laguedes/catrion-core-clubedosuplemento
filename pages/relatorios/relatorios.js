@@ -126,17 +126,102 @@ function openPrintPDF(title, subtitle, headers, rows){
   return `id_${Date.now()}_${Math.random().toString(36).slice(2,10)}`;
 }
 
-  async function loadCashEvents(){
-  if (window.CoreCash?.getEvents) {
-    const events = await window.CoreCash.getEvents();
-    return Array.isArray(events) ? events : [];
+  function reportEventFingerprint(evt){
+  return [
+    String(evt?.type || ""),
+    String(evt?.saleId || ""),
+    String(evt?.by || ""),
+    String(evt?.at || ""),
+    Number(evt?.amount ?? evt?.total ?? 0).toFixed(2)
+  ].join("|");
+}
+
+function mapRemoteCashEvent(row){
+  let noteObj = {};
+  try {
+    noteObj = row?.note ? JSON.parse(row.note) : {};
+  } catch {
+    noteObj = {};
   }
 
+  const rawKind = String(row?.kind || "").toUpperCase();
+
+  return {
+    id: row.id,
+    type: rawKind,
+    at: row.created_at,
+    by: noteObj?.by || "system",
+    amount: noteObj?.amount != null
+      ? Number(noteObj.amount || 0)
+      : Number(row.amount_cents || 0) / 100,
+    total: noteObj?.total != null ? Number(noteObj.total || 0) : null,
+    payments: noteObj?.payments || null,
+    costTotal: noteObj?.costTotal != null ? Number(noteObj.costTotal || 0) : 0,
+    profit: noteObj?.profit != null ? Number(noteObj.profit || 0) : 0,
+    saleId: noteObj?.saleId || null,
+    meta: noteObj?.meta || {},
+    note: row.note || null
+  };
+}
+
+function mergeReportEvents(localEvents = [], remoteEvents = []){
+  const map = new Map();
+
+  [...remoteEvents, ...localEvents].forEach((evt) => {
+    const key =
+      evt?.type === "SALE" && evt?.saleId
+        ? `sale:${evt.saleId}`
+        : reportEventFingerprint(evt);
+
+    if (!map.has(key)) {
+      map.set(key, evt);
+    }
+  });
+
+  return Array.from(map.values()).sort((a, b) => {
+    return new Date(b.at).getTime() - new Date(a.at).getTime();
+  });
+}
+
+async function loadCashEvents(startDate = null, endDate = null){
+  const localEvents = (() => {
+    try{
+      const raw = window.CoreCash?.getEvents
+        ? null
+        : JSON.parse(localStorage.getItem("core.cash.events.v1") || "[]");
+
+      if (raw && Array.isArray(raw)) return raw;
+
+      return [];
+    }catch{
+      return [];
+    }
+  })();
+
+  const localFiltered = (localEvents || []).filter(ev => {
+    if (!ev?.at) return false;
+    const t = new Date(ev.at).getTime();
+    const gte = startDate ? t >= startDate.getTime() : true;
+    const lte = endDate ? t <= endDate.getTime() : true;
+    return gte && lte;
+  });
+
   try{
-    const parsed = JSON.parse(localStorage.getItem("core.cash.events.v1") || "[]");
-    return Array.isArray(parsed) ? parsed : [];
-  }catch{
-    return [];
+    if (!window.CashStore?.listEventsByPeriod) {
+      return localFiltered;
+    }
+
+    const rows = await window.CashStore.listEventsByPeriod({
+      dateFrom: startDate ? startDate.toISOString() : null,
+      dateTo: endDate ? endDate.toISOString() : null,
+      limit: 5000
+    });
+
+    const remoteEvents = (rows || []).map(mapRemoteCashEvent);
+    return mergeReportEvents(localFiltered, remoteEvents);
+  }catch(err){
+    console.error("[RELATORIOS] erro ao carregar cash_events por período:", err);
+    return localFiltered;
   }
 }
 
@@ -183,14 +268,52 @@ async function getCancelledSaleIdsInRange(startDateISO, endDateISO){
     return t >= start.getTime() && t <= end.getTime();
   }
 
-  function defaultRangeLast30(){
-    const end = new Date();
-    end.setHours(23,59,59,999);
-    const start = new Date();
-    start.setDate(start.getDate() - 29);
+  const REPORT_RANGE_KEY = "core.reports.range.v1";
+
+function defaultRangeToday(){
+  const start = new Date();
+  start.setHours(0,0,0,0);
+
+  const end = new Date();
+  end.setHours(23,59,59,999);
+
+  return { start, end };
+}
+
+function loadSavedReportRange(){
+  try {
+    const raw = localStorage.getItem(REPORT_RANGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : null;
+
+    if (!parsed?.start || !parsed?.end) {
+      return defaultRangeToday();
+    }
+
+    const start = parseDateInput(parsed.start);
+    const end = parseDateInput(parsed.end);
+
+    if (!start || !end) {
+      return defaultRangeToday();
+    }
+
     start.setHours(0,0,0,0);
+    end.setHours(23,59,59,999);
+
     return { start, end };
+  } catch {
+    return defaultRangeToday();
   }
+}
+
+function saveReportRange(startValue, endValue){
+  try {
+    if (!startValue || !endValue) return;
+    localStorage.setItem(REPORT_RANGE_KEY, JSON.stringify({
+      start: startValue,
+      end: endValue
+    }));
+  } catch {}
+}
 
   function groupSalesByDay(sales){
     const map = new Map();
@@ -524,7 +647,7 @@ btnRefresh.onclick = () => draw();
 
   // ===== Dashboard =====
   function renderDashboard(){
-    const { start, end } = defaultRangeLast30();
+    const { start, end } = loadSavedReportRange();
     const startStr = isoDayKey(start);
     const endStr = isoDayKey(end);
 
@@ -640,8 +763,10 @@ btnRefresh.onclick = () => draw();
       const e = parseDateInput(dEnd.value) || end;
       e.setHours(23,59,59,999);
 
-      const events = await loadCashEvents();
-const sales = onlyActiveSales(events).filter(x => x.at && inRange(x.at, s, e));
+      saveReportRange(dStart.value, dEnd.value);
+
+      const events = await loadCashEvents(s, e);
+      const sales = onlyActiveSales(events).filter(x => x.at && inRange(x.at, s, e));
 
       const k = calcKpis(sales);
 
@@ -812,7 +937,7 @@ document.getElementById("btnExportPDF").onclick = () => {
 
 // ===== Lucro Real (Lucro das vendas - Contas pagas) =====
 function renderResultado(){
-  const { start, end } = defaultRangeLast30();
+  const { start, end } = loadSavedReportRange();
   const startStr = isoDayKey(start);
   const endStr = isoDayKey(end);
 
@@ -886,9 +1011,11 @@ function renderResultado(){
     const e = parseDateInput(rEnd.value) || end;
     e.setHours(23,59,59,999);
 
+    saveReportRange(rStart.value, rEnd.value);
+
     // --- vendas
-   const events = await loadCashEvents();
-const sales = onlyActiveSales(events).filter(x => x.at && inRange(x.at, s, e));
+    const events = await loadCashEvents(s, e);
+    const sales = onlyActiveSales(events).filter(x => x.at && inRange(x.at, s, e));
     const k = calcKpis(sales);
 
     // --- contas pagas no período
@@ -1242,7 +1369,7 @@ function drawLineChartSigned(canvas, series){
 
   // ===== Vendas =====
   function renderVendas(){
-    const { start, end } = defaultRangeLast30();
+    const { start, end } = loadSavedReportRange();
     const startStr = isoDayKey(start);
     const endStr = isoDayKey(end);
 
@@ -1293,7 +1420,9 @@ function drawLineChartSigned(canvas, series){
       const e = parseDateInput(vEnd.value) || end;
       e.setHours(23,59,59,999);
 
-      const events = await loadCashEvents();
+      saveReportRange(vStart.value, vEnd.value);
+
+      const events = await loadCashEvents(s, e);
       const salesAll = onlySales(events).filter(x => x.at && inRange(x.at, s, e));
 
       // popular usuários
@@ -1665,7 +1794,7 @@ draw();
 
 
   function renderProdutos(){
-  const { start, end } = defaultRangeLast30();
+  const { start, end } = loadSavedReportRange();
   const startStr = isoDayKey(start);
   const endStr = isoDayKey(end);
 
@@ -1714,8 +1843,10 @@ draw();
     const e = parseDateInput(pEnd.value) || end;
     e.setHours(23,59,59,999);
 
-    const events = await loadCashEvents();
-const sales = onlyActiveSales(events).filter(x => x.at && inRange(x.at, s, e));
+    saveReportRange(pStart.value, pEnd.value);
+
+    const events = await loadCashEvents(s, e);
+    const sales = onlyActiveSales(events).filter(x => x.at && inRange(x.at, s, e));
 
     const map = new Map(); // key -> {name, sku, qty, total, image}
     for (const sale of sales){
@@ -1813,7 +1944,7 @@ draw();
 
 
   function renderVendedores(){
-  const { start, end } = defaultRangeLast30();
+  const { start, end } = loadSavedReportRange();
   const startStr = isoDayKey(start);
   const endStr = isoDayKey(end);
 
@@ -1872,8 +2003,10 @@ draw();
     const e = parseDateInput(vdEnd.value) || end;
     e.setHours(23,59,59,999);
 
-    const events = await loadCashEvents();
-let sales = onlyActiveSales(events).filter(x => x.at && inRange(x.at, s, e));
+    saveReportRange(vdStart.value, vdEnd.value);
+
+    const events = await loadCashEvents(s, e);
+    let sales = onlyActiveSales(events).filter(x => x.at && inRange(x.at, s, e));
 
     if (vdExcludeDev.value === "yes"){
       sales = sales.filter(x => !isDevUser(x.by));
@@ -1929,8 +2062,8 @@ document.getElementById("btnExportPDF").onclick = () => {
     const e = parseDateInput(vdEnd.value) || end;
     e.setHours(23,59,59,999);
 
-    const events = await loadCashEvents();
-    const salesAll = onlySales(events).filter(x => x.at && inRange(x.at, s, e));
+    const events = await loadCashEvents(s, e);
+const salesAll = onlySales(events).filter(x => x.at && inRange(x.at, s, e));
     const sales = salesAll.filter(x => (x.by || "—") === user);
 
     // somatórios de pagamentos (modelo CoreCash: objeto)
@@ -2057,7 +2190,7 @@ draw();
 
   // ===== Caixa =====
   function renderCaixa(){
-    const { start, end } = defaultRangeLast30();
+    const { start, end } = loadSavedReportRange();
     const startStr = isoDayKey(start);
     const endStr = isoDayKey(end);
 
@@ -2108,7 +2241,9 @@ draw();
       const e = parseDateInput(cEnd.value) || end;
       e.setHours(23,59,59,999);
 
-      const events = (await loadCashEvents()).filter(x => x.at && inRange(x.at, s, e));
+      saveReportRange(cStart.value, cEnd.value);
+
+      const events = await loadCashEvents(s, e);
 
       const sales = onlyActiveSales(events);
       const sup = events.filter(x => x.type === "SUPPLY");
@@ -2161,7 +2296,7 @@ draw();
 
   // ===== Clientes =====
   function renderClientes(){
-    const { start, end } = defaultRangeLast30();
+    const { start, end } = loadSavedReportRange();
     const startStr = isoDayKey(start);
     const endStr = isoDayKey(end);
 
@@ -2199,14 +2334,16 @@ draw();
     const btnClApply = document.getElementById("btnClApply");
     const clList = document.getElementById("clList");
 
-    async function draw(){
+    aasync function draw(){
   try{
       const s = parseDateInput(clStart.value) || start;
       const e = parseDateInput(clEnd.value) || end;
       e.setHours(23,59,59,999);
 
-      const events = await loadCashEvents();
-const sales = onlyActiveSales(events).filter(x => x.at && inRange(x.at, s, e));
+      saveReportRange(clStart.value, clEnd.value);
+
+      const events = await loadCashEvents(s, e);
+      const sales = onlyActiveSales(events).filter(x => x.at && inRange(x.at, s, e));
 
       const map = new Map(); // id -> {id,name,total,count}
       for (const sale of sales){
@@ -2507,6 +2644,7 @@ function sumByDay(list, start, end){
 }
 
 async function renderEstoque(){
+  saveReportRange(eStart.value, eEnd.value);
   const sb =
     window.sb ||
     window.supabase ||
@@ -2521,7 +2659,7 @@ async function renderEstoque(){
     return;
   }
 
-  const { start, end } = defaultRangeLast30();
+  const { start, end } = loadSavedReportRange();
   const startStr = isoDayKey(start);
   const endStr = isoDayKey(end);
 
@@ -2795,7 +2933,7 @@ function buildCouponsRanking(sales){
 }
 
 function renderCupons(){
-  const { start, end } = defaultRangeLast30();
+  const { start, end } = loadSavedReportRange();
   const startStr = isoDayKey(start);
   const endStr = isoDayKey(end);
 
@@ -2838,7 +2976,9 @@ function renderCupons(){
     const e = parseDateInput(cpEnd.value) || end;
     e.setHours(23,59,59,999);
 
-    const events = await loadCashEvents();
+    saveReportRange(cpStart.value, cpEnd.value);
+
+    const events = await loadCashEvents(s, e);
 
 // ✅ só sales ativas no período
 const sales = onlyActiveSales(events).filter(ev => {
