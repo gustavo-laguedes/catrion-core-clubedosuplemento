@@ -126,38 +126,23 @@ async function syncEventToSupabase(evt) {
 async function syncCloseToSupabase(session) {
   try {
     if (!window.CashStore) return;
-
     if (!session?.remoteSessionId) return;
 
-    const closeNoteObj = {
-  by: session.closedBy || "system",
-  saleId: null,
-  notes: session.notes || "",
-  meta: { notes: session.notes || "" },
-  total: null,
-  payments: null,
-  costTotal: null,
-  profit: null,
-  amount: Number(session.finalAmount || 0)
-};
+    // 1. fecha a sessão remota primeiro
+    await window.CashStore.closeSession({
+      sessionId: session.remoteSessionId,
+      closedBy: session.closedBy || "system",
+      closingCashCountedCents: Math.round(Number(session.finalAmount || 0) * 100),
+      note: session.notes || ""
+    });
 
-await window.CashStore.addEvent({
-  sessionId: session.remoteSessionId,
-  kind: "CLOSE",
-  amountCents: Math.round(Number(session.finalAmount || 0) * 100),
-  note: JSON.stringify(closeNoteObj)
-});
-
-await window.CashStore.closeSession({
-  sessionId: session.remoteSessionId,
-  closedBy: session.closedBy || "system",
-  closingCashCountedCents: Math.round(Number(session.finalAmount || 0) * 100),
-  note: session.notes || ""
-});
+    // 2. não tenta mais gravar CLOSE em cash_events
+    // o fechamento passa a ser representado pela própria cash_sessions
+    return true;
   } catch (e) {
-  console.error("[CoreCash] ERRO AO SALVAR CLOSE NO SUPABASE:", e);
-  throw e;
-}
+    console.error("[CoreCash] ERRO AO FECHAR SESSÃO NO SUPABASE:", e);
+    throw e;
+  }
 }
 
 // === Integração simples com Estoque (localStorage) ===
