@@ -352,12 +352,35 @@ function eventFingerprint(evt) {
 function mergeEventsLists(localEvents = [], remoteEvents = []) {
   const map = new Map();
 
-  [...remoteEvents, ...localEvents].forEach((evt) => {
-    const key =
-      evt?.type === "SALE"
-        ? `sale:${evt?.saleId || evt?.id || eventFingerprint(evt)}`
-        : `sig:${eventFingerprint(evt)}`;
+  function buildKey(evt) {
+    const type = String(evt?.type || "").toUpperCase();
+    const by = String(evt?.by || "");
+    const amount = Number(evt?.amount ?? evt?.total ?? 0).toFixed(2);
 
+    // venda: dedup por saleId
+    if (type === "SALE") {
+      return `sale:${evt?.saleId || evt?.id || eventFingerprint(evt)}`;
+    }
+
+    // abertura/fechamento/suprimento/sangria:
+    // dedup por tipo + operador + valor + minuto
+    if (["OPEN", "CLOSE", "SUPPLY", "WITHDRAW"].includes(type)) {
+      const d = new Date(evt?.at || 0);
+      const minuteKey = [
+        d.getFullYear(),
+        String(d.getMonth() + 1).padStart(2, "0"),
+        String(d.getDate()).padStart(2, "0"),
+        String(d.getHours()).padStart(2, "0"),
+        String(d.getMinutes()).padStart(2, "0")
+      ].join("");
+      return `${type}:${by}:${amount}:${minuteKey}`;
+    }
+
+    return `sig:${eventFingerprint(evt)}`;
+  }
+
+  [...remoteEvents, ...localEvents].forEach((evt) => {
+    const key = buildKey(evt);
     if (!map.has(key)) {
       map.set(key, evt);
     }
