@@ -314,6 +314,39 @@ function loadEvents() {
   return Array.isArray(arr) ? arr : [];
 }
 
+function eventTimeToSecond(iso) {
+  const d = new Date(iso || 0);
+  d.setMilliseconds(0);
+  return d.toISOString();
+}
+
+function eventFingerprint(evt) {
+  return [
+    String(evt?.type || ""),
+    eventTimeToSecond(evt?.at),
+    Number(evt?.amount ?? evt?.total ?? 0).toFixed(2),
+    String(evt?.saleId || ""),
+    String(evt?.by || "")
+  ].join("|");
+}
+
+function mergeEventsLists(localEvents = [], remoteEvents = []) {
+  const map = new Map();
+
+  // remoto primeiro, local depois
+  // assim, se existir CLOSE só local, ele é preservado
+  [...remoteEvents, ...localEvents].forEach((evt) => {
+    const key = evt?.id ? `id:${evt.id}` : `sig:${eventFingerprint(evt)}`;
+    if (!map.has(key)) {
+      map.set(key, evt);
+    }
+  });
+
+  return Array.from(map.values()).sort((a, b) => {
+    return new Date(b.at).getTime() - new Date(a.at).getTime();
+  });
+}
+
 async function loadRemoteSession() {
   try {
     const getSessionFn =
@@ -620,14 +653,48 @@ function getTodayEvents() {
     return await syncEnsureRemoteSession(session);
   },
 
-    async getSession() {
-    const remote = await loadRemoteSession();
-    if (remote) {
-      saveSession(remote);
-      return remote;
+   async getSession() {
+  const local = loadSession();
+
+  // se local está aberto, NÃO deixa uma sessão remota fechada sobrescrever
+  if (local?.isOpen) {
+    try {
+      const remoteOpen = window.CashStore?.getLatestOpenSession
+        ? await window.CashStore.getLatestOpenSession()
+        : null;
+
+      if (remoteOpen?.id) {
+        const merged = {
+          ...local,
+          isOpen: true,
+          openedAt: remoteOpen.opened_at,
+          openedBy: remoteOpen.opened_by || local.openedBy || "system",
+          initialAmount: Number(remoteOpen.opening_cash_cents || 0) / 100,
+          notes: remoteOpen.note || local.notes || "",
+          remoteSessionId: remoteOpen.id
+        };
+
+        saveSession(merged);
+        return merged;
+      }
+
+      // ainda não criou remoto? mantém local aberto
+      return local;
+    } catch (e) {
+      console.warn("[CoreCash] Falha ao consultar sessão aberta remota:", e);
+      return local;
     }
-    return loadSession();
-  },
+  }
+
+  // se local não está aberto, aí sim pode usar a última sessão remota
+  const remote = await loadRemoteSession();
+  if (remote) {
+    saveSession(remote);
+    return remote;
+  }
+
+  return local;
+},
 
   async isOpen() {
     const s = await this.getSession();
@@ -635,16 +702,21 @@ function getTodayEvents() {
   },
 
   async getEvents() {
-    const session = await this.getSession();
-    if (session?.remoteSessionId) {
-      const remoteEvents = await loadRemoteEvents(session.remoteSessionId);
-      if (remoteEvents.length) {
-        saveEvents(remoteEvents);
-        return remoteEvents;
-      }
+  const localEvents = loadEvents();
+  const session = await this.getSession();
+
+  if (session?.remoteSessionId) {
+    const remoteEvents = await loadRemoteEvents(session.remoteSessionId);
+
+    if (remoteEvents.length) {
+      const merged = mergeEventsLists(localEvents, remoteEvents);
+      saveEvents(merged);
+      return merged;
     }
-    return loadEvents();
-  },
+  }
+
+  return localEvents;
+},
     canCancelEvent(event){
   return canCancelEvent(event);
 },
