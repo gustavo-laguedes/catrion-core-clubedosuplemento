@@ -15,17 +15,25 @@
 
   window.sb = window.supabase.createClient(url, anon, {
     auth: {
-      persistSession: true,     // mantém login no reload
-      autoRefreshToken: true,   // renova token sozinho
-      detectSessionInUrl: true, // útil se usar magic link / oauth futuramente
-      storageKey: "catrion_sb_auth" // evita conflito com outros projetos
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+      storageKey: "catrion_sb_auth"
     }
   });
 
-  // Log básico de eventos de auth (ajuda MUITO no debug)
+  // Log básico de eventos de auth
   window.sb.auth.onAuthStateChange((event, session) => {
     const uid = session?.user?.id || null;
     console.log("🔐 Auth event:", event, "uid:", uid);
+
+    if ((event === "SIGNED_IN" || event === "INITIAL_SESSION") && uid) {
+      setTimeout(() => {
+        if (typeof window.CoreUpdateAvatar === "function") {
+          window.CoreUpdateAvatar(uid);
+        }
+      }, 300);
+    }
   });
 
   console.log("✅ Supabase client criado (window.sb):", window.sb);

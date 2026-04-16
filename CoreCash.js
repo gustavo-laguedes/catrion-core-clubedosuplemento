@@ -51,9 +51,28 @@ async function syncEnsureRemoteSession(session) {
 
     session.remoteSessionId = row?.id || null;
     saveSession(session);
+
+    // 3) grava o evento OPEN no banco logo após criar a sessão
+    if (session.remoteSessionId) {
+      const openNoteObj = {
+        by: session.openedBy || "system",
+        saleId: null,
+        notes: session.notes || "",
+        meta: { notes: session.notes || "" },
+        amount: session.initialAmount || 0
+      };
+
+      await window.CashStore.addEvent({
+        sessionId: session.remoteSessionId,
+        kind: "OPEN",
+        amountCents: Math.round(Number(session.initialAmount || 0) * 100),
+        note: JSON.stringify(openNoteObj)
+      });
+    }
+
     return session.remoteSessionId;
   } catch (e) {
-    // 3) se bater conflito de sessão aberta duplicada, tenta buscar a já existente
+    // 4) se bater conflito de sessão aberta duplicada, tenta buscar a já existente
     const msg = String(e?.message || "");
     const code = String(e?.code || "");
 

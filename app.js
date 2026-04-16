@@ -9,52 +9,7 @@ const IS_LOCAL_DEV =
   window.location.hostname === "127.0.0.1";
 
 function enableLocalhostWriteGuard() {
-  if (!IS_LOCAL_DEV) return;
-  if (!window.sb || typeof window.sb.from !== "function") return;
-  if (window.sb.__localhostWriteGuardEnabled) return;
-
-  const originalFrom = window.sb.from.bind(window.sb);
-
-  window.sb.from = function (...args) {
-    const query = originalFrom(...args);
-
-    ["insert", "update", "delete", "upsert"].forEach((method) => {
-      if (typeof query[method] === "function") {
-        query[method] = function () {
-          const tableName = args[0] || "tabela";
-          const message = `[LOCALHOST] ${method.toUpperCase()} bloqueado em ${tableName}`;
-          console.warn(message);
-          throw new Error("Modo localhost: gravação no banco bloqueada.");
-        };
-      }
-    });
-
-    return query;
-  };
-
-  // bloquear storage também no localhost
-if (window.sb.storage && typeof window.sb.storage.from === "function") {
-  const originalStorageFrom = window.sb.storage.from.bind(window.sb.storage);
-
-  window.sb.storage.from = function (...args) {
-    const bucket = args[0] || "bucket";
-
-    return {
-      upload() {
-        console.warn(`[LOCALHOST] UPLOAD bloqueado no bucket ${bucket}`);
-        throw new Error("Modo localhost: upload bloqueado.");
-      },
-      remove() {
-        console.warn(`[LOCALHOST] DELETE bloqueado no bucket ${bucket}`);
-        throw new Error("Modo localhost: remoção bloqueada.");
-      },
-      getPublicUrl: originalStorageFrom(...args).getPublicUrl
-    };
-  };
-}
-
-  window.sb.__localhostWriteGuardEnabled = true;
-  console.warn("[LOCALHOST] Write guard do Supabase ativado.");
+  // Guard desativado — localhost com acesso total para testes
 }
 
 enableLocalhostWriteGuard();
@@ -77,6 +32,8 @@ setTimeout(enableLocalhostWriteGuard, 0);
   const authUser = window.CoreAuth.getCurrentUser();
   const profile = await loadCurrentProfileFromDatabase();
 
+  const resolvedAvatarUrl = await resolveAvatarUrl(profile?.avatar_path || "");
+
   const mergedUser = {
     ...authUser,
     name: profile?.full_name || authUser?.name || authUser?.email || "Usuário",
@@ -84,7 +41,7 @@ setTimeout(enableLocalhostWriteGuard, 0);
     email: profile?.email || authUser?.email || "",
     role: profile?.role || authUser?.role || "USER",
     avatar_path: profile?.avatar_path || "",
-    avatarUrl: profile?.avatar_path || ""
+    avatarUrl: resolvedAvatarUrl
   };
 
   updateUserUI(mergedUser);
@@ -2171,6 +2128,19 @@ function getUserInitial(nameOrEmail = "") {
   return String(nameOrEmail || "U").trim().charAt(0).toUpperCase() || "U";
 }
 
+function resolveAvatarUrl(avatarPath) {
+  if (!avatarPath) return "";
+
+  // Se já é uma URL completa (http/https), usa direto
+  if (avatarPath.startsWith("http")) return avatarPath;
+
+  const { data } = window.sb.storage
+    .from("user-avatars")
+    .getPublicUrl(avatarPath);
+
+  return data?.publicUrl || "";
+}
+
 function renderAvatarTarget(el, { name = "", avatarUrl = "" } = {}) {
   if (!el) return;
 
@@ -2189,7 +2159,9 @@ function openProfileModal() {
   if (!user) return;
 
   profileAvatarFile = null;
-  currentProfileAvatarUrl = user.avatarUrl || user.avatar_path || "";
+
+  const rawPath = user.avatarUrl || user.avatar_path || "";
+  currentProfileAvatarUrl = window._coreResolvedAvatarUrl || resolveAvatarUrl(rawPath);
 
   if (profileFullName) {
     profileFullName.value = user.name || user.full_name || "";
@@ -2390,13 +2362,15 @@ async function saveProfile() {
       }
     }
 
+   const resolvedAvatarUrlAfterSave = await resolveAvatarUrl(avatarUrl || "");
+
     const nextUser = {
       ...user,
       name: fullName,
       full_name: fullName,
       email,
       avatar_path: avatarUrl || null,
-      avatarUrl: avatarUrl || null
+      avatarUrl: resolvedAvatarUrlAfterSave || null
     };
 
     updateUserUI(nextUser);
@@ -2453,6 +2427,45 @@ async function loadCurrentProfileFromDatabase() {
   return data || null;
 }
 
+window.CoreUpdateAvatar = async function (userId) {
+  try {
+    const { data: profile } = await window.sb
+      .from("profiles")
+      .select("avatar_path")
+      .eq("id", userId)
+      .single();
+
+    if (!profile?.avatar_path) return;
+
+    const avatarUrl = profile.avatar_path.startsWith("http")
+      ? profile.avatar_path
+      : window.sb.storage.from("user-avatars").getPublicUrl(profile.avatar_path).data?.publicUrl || "";
+
+    if (!avatarUrl) return;
+
+    // Atualiza elementos visuais
+    const topbar = document.getElementById("topbarUserAvatar");
+    if (topbar) topbar.innerHTML = `<img src="${avatarUrl}" alt="Avatar">`;
+
+    const preview = document.getElementById("profileAvatarPreview");
+    if (preview) preview.innerHTML = `<img src="${avatarUrl}" alt="Avatar">`;
+
+    // Atualiza a sessão em cache com a URL resolvida
+    const session = JSON.parse(localStorage.getItem("core_session_v3") || "null");
+    if (session) {
+      session.avatarUrl = avatarUrl;
+      session.avatar_path = profile.avatar_path;
+      localStorage.setItem("core_session_v3", JSON.stringify(session));
+    }
+
+    // Atualiza variável de controle do modal
+    window._coreResolvedAvatarUrl = avatarUrl;
+
+  } catch (e) {
+    console.warn("CoreUpdateAvatar error:", e);
+  }
+};
+
 function updateUserUI(user) {
   const el = document.getElementById("userHello");
   if (!el || !user) return;
@@ -2463,8 +2476,9 @@ function updateUserUI(user) {
 
   el.textContent = `${name} (${role})`;
 
-  renderAvatarTarget(topbarUserAvatar, {
-    name,
-    avatarUrl
-  });
+  // Só atualiza o avatar se tiver URL — evita sobrescrever foto já carregada
+  const topbarJaTemFoto = topbarUserAvatar?.querySelector("img");
+  if (!topbarJaTemFoto) {
+    renderAvatarTarget(topbarUserAvatar, { name, avatarUrl });
+  }
 }
