@@ -12,111 +12,143 @@
 </head>
 
 <body>
+  <div id="coreLoadingOverlay" class="core-loading-overlay" aria-hidden="true">
+  <div class="core-loader-orbit" aria-label="Carregando">
+    <div class="core-loader-center"></div>
+    <div class="core-loader-ring"></div>
+    <div class="core-loader-dot"></div>
+  </div>
+</div>
+
   <div class="core-shell">
+
 
     <!-- SIDEBAR -->
     <aside class="core-sidebar">
-      <div class="sidebar-brand">
-        <img src="assets/core-topbar1.png" class="sidebar-brand-logo" alt="CORE">
-      </div>
+  <div class="sidebar-top">
+    <button
+      id="btnSidebarPin"
+      class="sidebar-pin-btn"
+      type="button"
+      aria-label="Fixar menu lateral"
+      title="Fixar menu lateral"
+    >
+      📌
+    </button>
+  </div>
 
-      <nav class="sidebar-nav">
-  <button class="sidebar-link active" type="button" data-route="home">
-    <span class="sidebar-ico">📈</span>
-    <span>Dashboard</span>
-  </button>
+  <nav class="sidebar-nav">
+    <button class="sidebar-link active" type="button" data-route="home" title="Dashboard">
+      <span class="sidebar-ico">📈</span>
+      <span class="sidebar-text">Dashboard</span>
+    </button>
 
-  <button class="sidebar-link" type="button" data-route="venda">
-    <span class="sidebar-ico">🛒</span>
-    <span>Vendas</span>
-  </button>
+    <button class="sidebar-link" type="button" data-route="venda" title="Vendas">
+      <span class="sidebar-ico">🛒</span>
+      <span class="sidebar-text">Vendas</span>
+    </button>
 
-  <button class="sidebar-link" type="button" data-route="produtos">
-    <span class="sidebar-ico">📦</span>
-    <span>Produtos</span>
-  </button>
+    <button class="sidebar-link" type="button" data-route="produtos" title="Produtos">
+      <span class="sidebar-ico">📦</span>
+      <span class="sidebar-text">Produtos</span>
+    </button>
 
-  <button class="sidebar-link" type="button" data-route="caixa">
-    <span class="sidebar-ico">💵</span>
-    <span>Caixa</span>
-  </button>
+    <button class="sidebar-link" type="button" data-route="caixa" title="Caixa">
+      <span class="sidebar-ico">💵</span>
+      <span class="sidebar-text">Caixa</span>
+    </button>
 
-  <button class="sidebar-link" type="button" data-route="relatorios" id="btnSidebarReports">
-  <span class="sidebar-ico">📊</span>
-  <span>Relatórios</span>
-  <span class="sidebar-lock hidden" id="reportsLock">🔒</span>
-</button>
-</nav>
+    <button class="sidebar-link" type="button" data-route="relatorios" id="btnSidebarReports" title="Relatórios">
+      <span class="sidebar-ico">📊</span>
+      <span class="sidebar-text">Relatórios</span>
+      <span class="sidebar-lock hidden" id="reportsLock">🔒</span>
+    </button>
+  </nav>
 
-<div class="sidebar-secondary">
-  <button
-    id="btnSidebarAccess"
-    class="sidebar-link sidebar-link-secondary"
-    type="button"
-    onclick="openAdminAuth('users')"
-  >
-    <span class="sidebar-ico">👤</span>
-    <span>Gestão de Acessos</span>
-  </button>
-
+  <div class="sidebar-secondary">
   <button
     id="btnSidebarRates"
     class="sidebar-link sidebar-link-secondary"
     type="button"
     onclick="openAdminAuth('system')"
+    title="Controle de Taxas"
   >
     <span class="sidebar-ico">💳</span>
-    <span>Controle de Taxas</span>
+    <span class="sidebar-text">Controle de Taxas</span>
+  </button>
+
+  <button
+    id="btnSidebarAccess"
+    class="sidebar-link sidebar-link-secondary"
+    type="button"
+    onclick="openAdminAuth('users')"
+    title="Gestão de Acessos"
+  >
+    <span class="sidebar-ico">👤</span>
+    <span class="sidebar-text">Gestão de Acessos</span>
   </button>
 </div>
 
-<div class="sidebar-footer">
-  <div class="sidebar-footer-text">Developed by Catrion</div>
+  <div class="sidebar-footer">
+    <div class="sidebar-footer-text">Developed by Catrion</div>
 
-  <img
-    src="assets/catrion-lowbar.png"
-    alt="Catrion"
-    class="sidebar-footer-logo"
-  />
+    <img
+      src="assets/catrion-lowbar.png"
+      alt="Catrion"
+      class="sidebar-footer-logo"
+    />
 
-  <div class="sidebar-footer-sub">v1.1.2 • 2026-04-16</div>
+    <div class="sidebar-footer-sub">v1.2.0 • 2026-04-17</div>
+  </div>
+</aside>
+
+        <header class="topbar">
+      <div class="topbar-left">
+  <button
+    id="btnMobileMenu"
+    class="topbar-mobile-menu-btn"
+    type="button"
+    aria-label="Abrir menu"
+    title="Abrir menu"
+  >
+    ☰
+  </button>
+
+  <button class="topbar-logo-btn topbar-core-logo-btn" data-go-home type="button" aria-label="Ir para o início">
+    <img src="assets/core-topbar1.png" class="topbar-logo-core" alt="CORE">
+  </button>
 </div>
-    </aside>
+
+      <div class="topbar-center">
+        <button class="topbar-logo-btn" data-go-home type="button" aria-label="Ir para o início">
+          <img src="assets/logo-topbar.png" class="topbar-logo-store" alt="Clube do Suplemento">
+        </button>
+      </div>
+
+      <div class="topbar-right">
+        <button id="btnProfileTrigger" class="topbar-profile-trigger" type="button" aria-label="Abrir perfil">
+          <div id="topbarUserAvatar" class="topbar-user-avatar">G</div>
+
+          <div class="topbar-user-meta">
+            <span id="userHello" class="hello">Usuário</span>
+          </div>
+        </button>
+
+        <button class="topbar-icon chat-btn" id="btnChat" title="Mensagens" aria-label="Mensagens">
+          💬
+          <span id="chatUnreadBadge" class="chat-badge hidden" aria-label="Mensagens não lidas"></span>
+        </button>
+
+        <div class="divider"></div>
+
+        <button class="topbar-icon" id="btnLogout" title="Sair" aria-label="Sair">
+          <span class="icon-power">⏻</span>
+        </button>
+      </div>
+    </header>
 
     <!-- CONTEÚDO PRINCIPAL -->
     <div class="core-main-area">
-      <header class="topbar">
-
-     <div class="topbar-center">
-  <button class="topbar-logo-btn" data-go-home type="button" aria-label="Ir para o início">
-    <img src="assets/logo-topbar.png" class="topbar-logo-store" alt="Clube do Suplemento">
-  </button>
-</div>
-        
-         <div class="topbar-right">
-  <button id="btnProfileTrigger" class="topbar-profile-trigger" type="button" aria-label="Abrir perfil">
-    <div id="topbarUserAvatar" class="topbar-user-avatar">G</div>
-
-    <div class="topbar-user-meta">
-      <span id="userHello" class="hello">Usuário</span>
-    </div>
-  </button>
-
-  <button class="topbar-icon chat-btn" id="btnChat" title="Mensagens" aria-label="Mensagens">
-    💬
-    <span id="chatUnreadBadge" class="chat-badge hidden" aria-label="Mensagens não lidas"></span>
-  </button>
-
-  <div class="divider"></div>
-
-  <button class="topbar-icon" id="btnLogout" title="Sair" aria-label="Sair">
-    <span class="icon-power">⏻</span>
-  </button>
-</div>               
-
-
-      </header>
-
       <main id="app"></main>
     </div>
   </div>

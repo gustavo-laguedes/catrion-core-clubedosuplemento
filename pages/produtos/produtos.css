@@ -1775,3 +1775,73 @@
     gap: 14px;
   }
 }
+
+/* ===== MOBILE / TABLET FINAL OVERRIDE ===== */
+
+@media (max-width: 1024px){
+  .products-header,
+  .products-toolbar{
+    gap: 12px;
+  }
+}
+
+@media (max-width: 720px){
+  .products-page{
+    gap: 14px;
+  }
+
+  .products-header{
+    display: grid;
+    gap: 12px;
+  }
+
+  .products-toolbar{
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .products-table-wrap{
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 16px;
+  }
+
+  .products-table{
+    min-width: 760px;
+  }
+
+  .modal-card,
+  .tax-card,
+  .cat-manager{
+    width: calc(100vw - 20px);
+    max-width: none;
+    max-height: calc(100vh - 20px);
+    overflow: auto;
+    border-radius: 18px;
+  }
+
+  .modal-head,
+  .modal-body,
+  .modal-foot{
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .grid{
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 520px){
+  .products-table-wrap{
+    border-radius: 14px;
+  }
+
+  .modal-card,
+  .tax-card,
+  .cat-manager{
+    width: calc(100vw - 12px);
+    border-radius: 16px;
+  }
+}

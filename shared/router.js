@@ -5,15 +5,38 @@
     return await res.text();
   }
 
-  function ensureCss(id, href) {
-    let el = document.getElementById(id);
-    if (!el) {
-      el = document.createElement("link");
-      el.rel = "stylesheet";
-      el.id = id;
-      document.head.appendChild(el);
-    }
-    el.href = href;
+    function ensureCss(id, href) {
+    return new Promise((resolve, reject) => {
+      let el = document.getElementById(id);
+
+      if (!el) {
+        el = document.createElement("link");
+        el.rel = "stylesheet";
+        el.id = id;
+        document.head.appendChild(el);
+      }
+
+      const done = () => {
+        el.removeEventListener("load", done);
+        el.removeEventListener("error", fail);
+        resolve();
+      };
+
+      const fail = () => {
+        el.removeEventListener("load", done);
+        el.removeEventListener("error", fail);
+        reject(new Error(`Falha ao carregar CSS: ${href}`));
+      };
+
+      el.addEventListener("load", done, { once: true });
+      el.addEventListener("error", fail, { once: true });
+
+      el.href = href;
+
+      if (el.sheet && el.href.includes(href.split("?")[0])) {
+        resolve();
+      }
+    });
   }
 
   function ensureScript(id, src) {
@@ -36,7 +59,7 @@
     window.CoreRouterState = window.CoreRouterState || {};
     window.CoreRouterState.current = current;
 
-    async function render(pageName) {
+        async function render(pageName) {
       current = pageName;
       window.CoreRouterState.current = current;
 
@@ -44,22 +67,41 @@
       document.body.classList.toggle("is-login", isLoginPage);
 
       const base = `pages/${pageName}/${pageName}`;
+      const startedAt = performance.now();
 
-      mountEl.innerHTML = await loadText(`${base}.html`);
-      ensureCss("pageStyles", `${base}.css?v=${Date.now()}`);
-      await ensureScript("pageScript", `${base}.js`);
+      window.CoreLoading?.show();
 
-      const mods = window.CorePageModules || {};
-      if (typeof mods[pageName] === "function") {
-        mods[pageName]({ go });
-      }
+      try {
+        const [html] = await Promise.all([
+          loadText(`${base}.html`),
+          ensureCss("pageStyles", `${base}.css?v=${Date.now()}`)
+        ]);
 
-      if (window.CoreUI) {
-        window.CoreUI.updateTopbar();
-      }
+        mountEl.innerHTML = html;
 
-      if (window.CoreAudit) {
-        window.CoreAudit.log("PAGE_VIEW", { page: current });
+        await ensureScript("pageScript", `${base}.js`);
+
+        const mods = window.CorePageModules || {};
+        if (typeof mods[pageName] === "function") {
+          mods[pageName]({ go });
+        }
+
+        if (window.CoreUI) {
+          window.CoreUI.updateTopbar();
+        }
+
+        if (window.CoreAudit) {
+          window.CoreAudit.log("PAGE_VIEW", { page: current });
+        }
+      } finally {
+        const elapsed = performance.now() - startedAt;
+        const minVisible = 220;
+
+        if (elapsed < minVisible) {
+          await new Promise((resolve) => setTimeout(resolve, minVisible - elapsed));
+        }
+
+        window.CoreLoading?.hide();
       }
     }
 

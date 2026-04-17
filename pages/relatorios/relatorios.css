@@ -842,3 +842,78 @@
   font-size: 12px;
   box-shadow: 0 10px 20px rgba(239,68,68,.18);
 }
+
+/* ===== MOBILE / TABLET FINAL OVERRIDE ===== */
+
+@media (max-width: 1024px){
+  .reports-grid,
+  .r-grid2,
+  .r-kpis,
+  .r-kpis-pay,
+  .ap-kpis{
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 720px){
+  .r-head,
+  .ap-head,
+  .ap-top{
+    display: grid;
+    gap: 12px;
+  }
+
+  .r-title,
+  .rank-title{
+    font-size: 20px;
+  }
+
+  .r-sub,
+  .rank-sub{
+    font-size: 12px;
+  }
+
+  .r-filters,
+  .ap-form,
+  .ap-row2{
+    grid-template-columns: 1fr !important;
+    gap: 10px;
+  }
+
+  .r-card,
+  .report-tile,
+  .small-card{
+    border-radius: 18px;
+  }
+
+  .r-table,
+  .rank-list,
+  .ap-cat-list,
+  .ap-cal-grid{
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .r-modal{
+    width: calc(100vw - 16px);
+    max-height: calc(100vh - 16px);
+    overflow: auto;
+    border-radius: 18px;
+  }
+
+  .r-modal-actions{
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .r-modal-actions > *{
+    width: 100%;
+  }
+}
+
+@media (max-width: 520px){
+  .r-title,
+  .rank-title{
+    font-size: 18px;
+  }
+}

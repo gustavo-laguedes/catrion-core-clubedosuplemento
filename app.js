@@ -2,6 +2,31 @@
 const app = document.getElementById("app");
 const router = window.CoreRouter.createRouter({ mountEl: app });
 
+const coreLoadingOverlay = document.getElementById("coreLoadingOverlay");
+
+window.CoreLoading = (() => {
+  let counter = 0;
+
+  function show() {
+  counter += 1;
+  coreLoadingOverlay?.classList.remove("is-hidden");
+}
+
+  function hide(force = false) {
+    if (force) {
+      counter = 0;
+    } else {
+      counter = Math.max(0, counter - 1);
+    }
+
+    if (counter === 0) {
+      coreLoadingOverlay?.classList.add("is-hidden");
+    }
+  }
+
+  return { show, hide };
+})();
+
 window.coreRouterInstance = router;
 
 const IS_LOCAL_DEV =
@@ -14,6 +39,8 @@ function enableLocalhostWriteGuard() {
 
 enableLocalhostWriteGuard();
 setTimeout(enableLocalhostWriteGuard, 0);
+
+window.CoreLoading?.show();
 
 (async () => {
   try {
@@ -47,14 +74,16 @@ setTimeout(enableLocalhostWriteGuard, 0);
   updateUserUI(mergedUser);
     applyGlobalRoleUI();
 
-  setActiveSidebar("home");
-  router.render("home");
+    setActiveSidebar("home");
+  await router.render("home");
 } else {
-  router.render("login");
+  await router.render("login");
 }
-  } catch (e) {
+    } catch (e) {
     console.warn("CoreAuth.bootstrap falhou:", e);
-    router.render("login");
+    await router.render("login");
+  } finally {
+    window.CoreLoading?.hide(true);
   }
 })();
 
@@ -75,24 +104,51 @@ function setActiveSidebar(routeName) {
 
 window.setActiveSidebar = setActiveSidebar;
 
-document.addEventListener("click", (e) => {
-  const navBtn = e.target.closest(".sidebar-link[data-route]");
-  if (!navBtn) return;
-
-  const route = navBtn.dataset.route;
+function navigateFromSidebar(route) {
   if (!route) return;
 
   router.go(route);
   setActiveSidebar(route);
+
+  if (isMobileViewport()) {
+    closeMobileMenu();
+  }
+}
+
+document.addEventListener("click", (e) => {
+  const navBtn = e.target.closest(".sidebar-link[data-route]");
+  if (!navBtn) return;
+
+  e.preventDefault();
+  e.stopPropagation();
+
+  const route = navBtn.dataset.route;
+  navigateFromSidebar(route);
 });
+
+const coreSidebarEl = document.querySelector(".core-sidebar");
+
+if (coreSidebarEl) {
+  coreSidebarEl.addEventListener("touchend", (e) => {
+    const navBtn = e.target.closest(".sidebar-link[data-route]");
+    if (!navBtn) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    const route = navBtn.dataset.route;
+    navigateFromSidebar(route);
+  }, { passive: false });
+}
 
 // acessibilidade: Enter/Espaço no “logo”
 document.addEventListener("keydown", (e) => {
   const el = document.activeElement;
-  if (!el || el.id !== "btnGoHome") return;
+  if (!el || !el.matches("[data-go-home]")) return;
 
   if (e.key === "Enter" || e.key === " ") {
     e.preventDefault();
+    setActiveSidebar("home");
     router.go("home");
   }
 });
@@ -132,6 +188,12 @@ const adminUserEmail = document.getElementById("adminUserEmail");
 const adminUserFullName = document.getElementById("adminUserFullName");
 
 const adminUserRole = document.getElementById("adminUserRole");
+
+const btnSidebarPin = document.getElementById("btnSidebarPin");
+const btnMobileMenu = document.getElementById("btnMobileMenu");
+const SIDEBAR_PIN_KEY = "core_sidebar_pinned";
+
+loadSidebarPinnedState();
 
 const btnProfileTrigger = document.getElementById("btnProfileTrigger");
 const profileOverlay = document.getElementById("profileOverlay");
@@ -219,6 +281,61 @@ function applyGlobalRoleUI() {
   if (btnAdminNewUser) {
     btnAdminNewUser.style.display = canAdminManageUsers() ? "" : "none";
   }
+}
+
+function applySidebarPinnedState(isPinned) {
+  document.body.classList.toggle("sidebar-pinned", !!isPinned);
+
+  if (btnSidebarPin) {
+    btnSidebarPin.textContent = isPinned ? "📍" : "📌";
+    btnSidebarPin.setAttribute(
+      "aria-label",
+      isPinned ? "Desafixar menu lateral" : "Fixar menu lateral"
+    );
+    btnSidebarPin.setAttribute(
+      "title",
+      isPinned ? "Desafixar menu lateral" : "Fixar menu lateral"
+    );
+  }
+}
+
+function loadSidebarPinnedState() {
+  const saved = localStorage.getItem(SIDEBAR_PIN_KEY) === "true";
+  applySidebarPinnedState(saved);
+}
+
+function toggleSidebarPinnedState(event) {
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+
+  const next = !document.body.classList.contains("sidebar-pinned");
+
+  document.body.classList.toggle("sidebar-pinned", next);
+  localStorage.setItem(SIDEBAR_PIN_KEY, String(next));
+  applySidebarPinnedState(next);
+}
+
+function isMobileViewport() {
+  return window.innerWidth <= 720;
+}
+
+function openMobileMenu() {
+  document.body.classList.add("mobile-menu-open");
+}
+
+function closeMobileMenu() {
+  document.body.classList.remove("mobile-menu-open");
+}
+
+function toggleMobileMenu(event) {
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+
+  document.body.classList.toggle("mobile-menu-open");
 }
 
 
@@ -1474,6 +1591,18 @@ if (btnAdminNewUser) {
   btnAdminNewUser.addEventListener("click", openAdminUserCreateForm);
 }
 
+if (btnSidebarPin) {
+  btnSidebarPin.addEventListener("click", (e) => {
+    toggleSidebarPinnedState(e);
+  });
+}
+
+if (btnMobileMenu) {
+  btnMobileMenu.addEventListener("click", (e) => {
+    toggleMobileMenu(e);
+  });
+}
+
 if (btnAdminUserFormClose) {
   btnAdminUserFormClose.addEventListener("click", closeAdminUserForm);
 }
@@ -2253,6 +2382,27 @@ if (btnProfileRemoveAvatar) {
     });
   });
 }
+
+document.addEventListener("click", (e) => {
+  if (!isMobileViewport()) return;
+  if (!document.body.classList.contains("mobile-menu-open")) return;
+
+  const clickedSidebar = e.target.closest(".core-sidebar");
+  const clickedMenuBtn = e.target.closest("#btnMobileMenu");
+  const clickedRouteBtn = e.target.closest(".sidebar-link[data-route]");
+
+  if (clickedRouteBtn) return;
+
+  if (!clickedSidebar && !clickedMenuBtn) {
+    closeMobileMenu();
+  }
+});
+
+window.addEventListener("resize", () => {
+  if (!isMobileViewport()) {
+    closeMobileMenu();
+  }
+});
 
 async function uploadProfileAvatar(file, userId) {
   if (!file || !userId) return null;

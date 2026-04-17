@@ -716,3 +716,63 @@ body.cash-scroll-lock{
 .btn-eye:hover .icon-eye{
   stroke: #ffffff;
 }
+
+/* ===== MOBILE / TABLET FINAL OVERRIDE ===== */
+
+@media (max-width: 1024px){
+  .caixa-grid{
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px){
+  .caixa-page,
+  .page-container{
+    gap: 14px;
+  }
+
+  .caixa-header{
+    gap: 12px;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .status-kpis,
+  .pay-grid,
+  .sale-detail-grid{
+    grid-template-columns: 1fr !important;
+  }
+
+  .cash-card,
+  .sale-box{
+    border-radius: 18px;
+  }
+
+  .events-tools,
+  .caixa-actions,
+  .cash-actions,
+  .modal-actions,
+  .admin-warning-actions{
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .events-tools > *,
+  .caixa-actions > *,
+  .cash-actions > *,
+  .modal-actions > *,
+  .admin-warning-actions > *{
+    width: 100%;
+  }
+
+  .events-list{
+    overflow-x: auto;
+  }
+}
+
+@media (max-width: 520px){
+  .kpi-value,
+  .profit-value{
+    font-size: 24px;
+  }
+}
