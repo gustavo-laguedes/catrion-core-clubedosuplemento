@@ -1114,37 +1114,53 @@ const saleEvt = eventsAll.find(x => String(x.id) === String(id));
 if (cancelBtn) {
   ev.stopPropagation();
 
+  if (cancelBtn.disabled) return;
+
   const id = cancelBtn.getAttribute("data-cancel");
 
   if (!confirm("Deseja cancelar este movimento? Essa ação não pode ser revertida.")) {
     return;
   }
 
-  // pega o evento antes do cancelamento, para sabermos o que sincronizar
-  const eventsAllBefore = await window.CoreCash.getEvents();
-const evtBefore = eventsAllBefore.find(x => String(x.id) === String(id));
+  cancelBtn.disabled = true;
+  cancelBtn.textContent = "Cancelando...";
 
-  const r = window.CoreCash.cancelEvent(id, {
-    by: getOperatorName() || "admin",
-    reason: "Cancelado manualmente no caixa"
-  });
+  try {
+    // pega o evento antes do cancelamento, para sabermos o que sincronizar
+    const eventsAllBefore = await window.CoreCash.getEvents();
+    const evtBefore = eventsAllBefore.find(x => String(x.id) === String(id));
 
-  if (!r?.ok) {
-    alert(r?.reason || "Não foi possível cancelar este movimento.");
-    return;
-  }
+    const r = window.CoreCash.cancelEvent(id, {
+      by: getOperatorName() || "admin",
+      reason: "Cancelado manualmente no caixa"
+    });
+
+    if (!r?.ok) {
+      alert(r?.reason || "Não foi possível cancelar este movimento.");
+      cancelBtn.disabled = false;
+      cancelBtn.textContent = "Cancelar";
+      return;
+    }
 
     if (evtBefore?.type === "SALE") {
-    const syncResult = await syncCancelledSaleToSupabase(evtBefore);
+      const syncResult = await syncCancelledSaleToSupabase(evtBefore);
 
-    if (syncResult?.warnings?.length) {
-      console.warn("[Caixa] Cancelamento concluído com avisos:", syncResult);
+      if (syncResult?.warnings?.length) {
+        console.warn("[Caixa] Cancelamento concluído com avisos:", syncResult);
+      }
     }
-  }
 
-  await render();
-  return;
+    await render();
+    return;
+  } catch (err) {
+    console.error("[Caixa] Erro ao cancelar movimento:", err);
+    alert("Erro ao cancelar movimento.");
+    cancelBtn.disabled = false;
+    cancelBtn.textContent = "Cancelar";
+    return;
+  }
 }
+      
     });
   }
 

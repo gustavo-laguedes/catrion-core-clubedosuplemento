@@ -675,24 +675,67 @@ btnRefresh.onclick = () => draw();
           </div>
         </div>
 
-        <div class="r-kpis">
-          <div class="r-kpi"><div class="k">Total vendido</div><div class="v" id="kTotal">—</div></div>
-          <div class="r-kpi"><div class="k">Nº vendas</div><div class="v" id="kCount">—</div></div>
-          <div class="r-kpi"><div class="k">Ticket médio</div><div class="v" id="kTicket">—</div></div>
-          <div class="r-kpi"><div class="k">Lucro</div><div class="v" id="kProfit">—</div></div>
-        </div>
+        <div class="r-dashboard-stack">
 
-      <div class="r-kpis r-kpis-pay">
-  <div class="r-kpi"><div class="k">Dinheiro</div><div class="v" id="kCash">—</div></div>
-  <div class="r-kpi"><div class="k">Pix</div><div class="v" id="kPix">—</div></div>
-  <div class="r-kpi"><div class="k">Crédito</div><div class="v" id="kCredit">—</div></div>
-  <div class="r-kpi"><div class="k">Débito</div><div class="v" id="kDebit">—</div></div>
+<div class="r-section-label">Indicadores principais</div>
+<div class="r-kpis r-kpis-main">
+  <div class="r-kpi">
+    <div class="k">Total vendido</div>
+    <div class="v" id="kTotal">—</div>
+  </div>
+
+  <div class="r-kpi">
+    <div class="k">Nº vendas</div>
+    <div class="v" id="kCount">—</div>
+  </div>
+
+  <div class="r-kpi">
+    <div class="k">Ticket médio</div>
+    <div class="v" id="kTicket">—</div>
+  </div>
+
+  <div class="r-kpi">
+    <div class="k">Lucro bruto</div>
+    <div class="v" id="kProfitGross">—</div>
+  </div>
 </div>
 
-      <!-- ✅ NOVO: custos e lucro bruto -->
-<div class="r-kpis r-kpis-pay">
-  <div class="r-kpi"><div class="k">Taxas (maquininha)</div><div class="v" id="kFees">—</div></div>
-  <div class="r-kpi"><div class="k">Lucro bruto</div><div class="v" id="kProfitGross">—</div></div>
+  <div class="r-section-label">Formas de pagamento</div>
+  <div class="r-kpis r-kpis-pay">
+    <div class="r-kpi">
+      <div class="k">Dinheiro</div>
+      <div class="v" id="kCash">—</div>
+    </div>
+
+    <div class="r-kpi">
+      <div class="k">Pix</div>
+      <div class="v" id="kPix">—</div>
+    </div>
+
+    <div class="r-kpi">
+      <div class="k">Crédito</div>
+      <div class="v" id="kCredit">—</div>
+    </div>
+
+    <div class="r-kpi">
+      <div class="k">Débito</div>
+      <div class="v" id="kDebit">—</div>
+    </div>
+  </div>
+
+  <div class="r-section-label">Custos e margem</div>
+<div class="r-kpis r-kpis-result">
+  <div class="r-kpi">
+    <div class="k">Taxas (maquininha)</div>
+    <div class="v" id="kFees">—</div>
+  </div>
+
+  <div class="r-kpi r-kpi-highlight">
+    <div class="k">Lucro líquido</div>
+    <div class="v" id="kProfit">—</div>
+  </div>
+</div>
+
 </div>
 
 
@@ -766,7 +809,20 @@ btnRefresh.onclick = () => draw();
       saveReportRange(dStart.value, dEnd.value);
 
       const events = await loadCashEvents(s, e);
-      const sales = onlyActiveSales(events).filter(x => x.at && inRange(x.at, s, e));
+
+const cancelledSaleIds = await getCancelledSaleIdsInRange(
+  s.toISOString(),
+  e.toISOString()
+);
+
+const sales = onlyActiveSales(events).filter(x => {
+  if (!x.at || !inRange(x.at, s, e)) return false;
+
+  const saleKey = String(x.saleId || x.id || "").trim();
+  if (saleKey && cancelledSaleIds.has(saleKey)) return false;
+
+  return true;
+});
 
       const k = calcKpis(sales);
 
@@ -965,10 +1021,10 @@ function renderResultado(){
       </div>
 
             <div class="r-kpis">
-        <div class="r-kpi"><div class="k">Lucro (vendas)</div><div class="v" id="rkProfitSales">—</div></div>
-        <div class="r-kpi"><div class="k">Contas pagas</div><div class="v" id="rkPaid">—</div></div>
-        <div class="r-kpi"><div class="k">Lucro real</div><div class="v" id="rkReal">—</div></div>
-      </div>
+  <div class="r-kpi"><div class="k">Lucro (vendas)</div><div class="v" id="rkProfitSales">—</div></div>
+  <div class="r-kpi"><div class="k">Contas pagas</div><div class="v" id="rkPaid">—</div></div>
+  <div class="r-kpi r-kpi-highlight"><div class="k">Lucro real</div><div class="v" id="rkReal">—</div></div>
+</div>
 
       <div class="r-grid2 full">
         <div class="r-canvas-wrap">
@@ -1102,12 +1158,12 @@ function renderResultado(){
   draw();
 }
 
-  function drawLineChart(canvas, series){
+function drawLineChart(canvas, series){
   const ctx = canvas.getContext("2d");
   const dpr = window.devicePixelRatio || 1;
 
   const cssW = canvas.clientWidth;
-  const cssH = 160;
+  const cssH = 240;
 
   canvas.width = cssW * dpr;
   canvas.height = cssH * dpr;
@@ -1115,14 +1171,13 @@ function renderResultado(){
   const w = canvas.width;
   const h = canvas.height;
 
-  ctx.clearRect(0,0,w,h);
+  ctx.clearRect(0, 0, w, h);
 
-  const padL = 44 * dpr;      // espaço eixo Y
-  const padR = 16 * dpr;
-  const padT = 18 * dpr;
-  const padB = 36 * dpr;      // espaço eixo X
+  const padL = 52 * dpr;
+  const padR = 24 * dpr;
+  const padT = 28 * dpr;
+  const padB = 92 * dpr;
 
-  // sem dados
   if (!series || !series.length){
     ctx.globalAlpha = .85;
     ctx.font = `${12*dpr}px system-ui, Arial`;
@@ -1130,22 +1185,19 @@ function renderResultado(){
     return;
   }
 
-  const ys = series.map(x => Number(x[1]||0));
+  const ys = series.map(x => Number(x[1] || 0));
   const maxY = Math.max(1, ...ys);
 
-  const plotW = (w - padL - padR);
-  const plotH = (h - padT - padB);
-
+  const plotW = w - padL - padR;
+  const plotH = h - padT - padB;
   const xStep = series.length === 1 ? 0 : plotW / (series.length - 1);
 
   const X = (i) => padL + i * xStep;
   const Y = (v) => padT + (1 - (v / maxY)) * plotH;
 
-  // eixos
+  // eixo X
   ctx.globalAlpha = .25;
   ctx.lineWidth = 1 * dpr;
-
-  // eixo X
   ctx.beginPath();
   ctx.moveTo(padL, padT + plotH);
   ctx.lineTo(padL + plotW, padT + plotH);
@@ -1157,9 +1209,9 @@ function renderResultado(){
   ctx.lineTo(padL, padT + plotH);
   ctx.stroke();
 
-  // ticks Y (0, 50%, 100%)
-  ctx.globalAlpha = .22;
-  [0, 0.5, 1].forEach(frac=>{
+  // linhas horizontais
+  ctx.globalAlpha = .18;
+  [0, 0.5, 1].forEach(frac => {
     const v = maxY * frac;
     const y = Y(v);
     ctx.beginPath();
@@ -1168,67 +1220,94 @@ function renderResultado(){
     ctx.stroke();
   });
 
-  // labels dos eixos
+  // labels do eixo Y
   ctx.globalAlpha = .75;
   ctx.font = `${11*dpr}px system-ui, Arial`;
-
-  // labels Y
-  ctx.globalAlpha = .75;
   ctx.fillText("0", 10*dpr, padT + plotH + 4*dpr);
-  ctx.fillText(`${Math.round(maxY/2)}`, 10*dpr, padT + plotH/2 + 4*dpr);
+  ctx.fillText(`${Math.round(maxY / 2)}`, 10*dpr, padT + plotH / 2 + 4*dpr);
   ctx.fillText(`${Math.round(maxY)}`, 10*dpr, padT + 4*dpr);
 
-  // labels X (primeiro e último dia)
-  const firstDay = series[0][0];
-  const lastDay = series[series.length - 1][0];
-
-  ctx.globalAlpha = .75;
-  ctx.fillText(firstDay.split("-").reverse().join("/"), padL, padT + plotH + 24*dpr);
-  ctx.fillText(lastDay.split("-").reverse().join("/"), padL + plotW - 60*dpr, padT + plotH + 24*dpr);
-
-  // linha
+  // linha do gráfico
   ctx.globalAlpha = 1;
   ctx.lineWidth = 3 * dpr;
   ctx.beginPath();
-  ys.forEach((v,i)=>{
-    if (i===0) ctx.moveTo(X(i), Y(v));
-    else ctx.lineTo(X(i), Y(v));
+  ys.forEach((v, i) => {
+    const x = X(i);
+    const y = Y(v);
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
   });
   ctx.stroke();
 
-  // pontos + valor ao lado
-  ctx.globalAlpha = 0.95;
+  // pontos
+  ctx.globalAlpha = .95;
+  ys.forEach((v, i) => {
+    const x = X(i);
+    const y = Y(v);
+    ctx.beginPath();
+    ctx.arc(x, y, 4 * dpr, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  // valores dos pontos com fundo branco, sempre acima da linha
   ctx.font = `${11*dpr}px system-ui, Arial`;
-  ys.forEach((v,i)=>{
+
+  ys.forEach((v, i) => {
     const x = X(i);
     const y = Y(v);
 
+    const label = `R$ ${Math.round(v)}`;
+    const textW = ctx.measureText(label).width;
+    const boxPadX = 6 * dpr;
+    const boxPadY = 4 * dpr;
+    const boxH = 20 * dpr;
+    const boxW = textW + boxPadX * 2;
+
+    let tx = x - (boxW / 2);
+    if (tx < padL) tx = padL;
+    if (tx + boxW > w - padR) tx = w - padR - boxW;
+
+    let ty = y - 28 * dpr;
+    if (ty < padT) ty = y + 10 * dpr;
+
+    // fundo branco atrás do valor
+    ctx.globalAlpha = .96;
+    ctx.fillStyle = "#ffffff";
     ctx.beginPath();
-    ctx.arc(x, y, 4 * dpr, 0, Math.PI*2);
+    ctx.roundRect(tx, ty, boxW, boxH, 8 * dpr);
     ctx.fill();
 
-    // valor ao lado do ponto (sem cortar nas bordas)
-const label = `R$ ${Math.round(v)}`;
-ctx.globalAlpha = 0.85;
+    // borda suave
+    ctx.globalAlpha = .18;
+    ctx.strokeStyle = "#0f172a";
+    ctx.lineWidth = 1 * dpr;
+    ctx.stroke();
 
-// mede largura do texto
-const textW = ctx.measureText(label).width;
+    // texto
+    ctx.globalAlpha = .9;
+    ctx.fillStyle = "#0f172a";
+    ctx.fillText(label, tx + boxPadX, ty + 14 * dpr);
+  });
 
-// tenta desenhar à direita…
-let tx = x + 8*dpr;
+  // todas as datas no eixo X com ano
+  ctx.globalAlpha = .75;
+  ctx.font = `${10*dpr}px system-ui, Arial`;
+  ctx.fillStyle = "#475569";
 
-// …mas se estiver estourando, desenha à esquerda
-if (tx + textW > w - padR) {
-  tx = x - textW - 8*dpr;
-}
+  series.forEach((item, i) => {
+    const day = String(item[0] || "");
+    const [year, month, date] = day.split("-");
+    const label = `${date}/${month}/${year}`;
 
-// y do texto (se estiver muito no topo, joga pra baixo)
-let ty = y - 6*dpr;
-if (ty < padT + 12*dpr) ty = y + 16*dpr;
+    const x = X(i);
+    const yBase = padT + plotH + 28 * dpr;
 
-ctx.fillText(label, tx, ty);
-ctx.globalAlpha = 0.95;
-
+    ctx.save();
+    ctx.translate(x, yBase);
+    ctx.rotate(-Math.PI / 2);
+    ctx.textAlign = "right";
+    ctx.fillText(label, 0, 0);
+    ctx.restore();
   });
 }
 
@@ -1237,7 +1316,7 @@ function drawLineChartSigned(canvas, series){
   const dpr = window.devicePixelRatio || 1;
 
   const cssW = canvas.clientWidth;
-  const cssH = 160;
+  const cssH = 240;
 
   canvas.width = cssW * dpr;
   canvas.height = cssH * dpr;
@@ -1245,21 +1324,22 @@ function drawLineChartSigned(canvas, series){
   const w = canvas.width;
   const h = canvas.height;
 
-  ctx.clearRect(0,0,w,h);
+  ctx.clearRect(0, 0, w, h);
 
-  const padL = 44 * dpr;
-  const padR = 16 * dpr;
-  const padT = 18 * dpr;
-  const padB = 36 * dpr;
+  const padL = 52 * dpr;
+  const padR = 24 * dpr;
+  const padT = 28 * dpr;
+  const padB = 92 * dpr;
 
   if (!series || !series.length){
     ctx.globalAlpha = .85;
     ctx.font = `${12*dpr}px system-ui, Arial`;
+    ctx.fillStyle = "#0f172a";
     ctx.fillText("Sem dados no período", padL, padT + 10*dpr);
     return;
   }
 
-  const ys = series.map(x => Number(x[1]||0));
+  const ys = series.map(x => Number(x[1] || 0));
   let minY = Math.min(...ys);
   let maxY = Math.max(...ys);
 
@@ -1268,32 +1348,42 @@ function drawLineChartSigned(canvas, series){
     maxY += 1;
   }
 
-  const plotW = (w - padL - padR);
-  const plotH = (h - padT - padB);
-
+  const plotW = w - padL - padR;
+  const plotH = h - padT - padB;
   const xStep = series.length === 1 ? 0 : plotW / (series.length - 1);
 
   const X = (i) => padL + i * xStep;
   const Y = (v) => padT + ((maxY - v) / (maxY - minY)) * plotH;
 
-  // ==== EIXOS (como estavam antes) ====
+  // eixo X
   ctx.globalAlpha = .25;
   ctx.lineWidth = 1 * dpr;
-
+  ctx.strokeStyle = "#0f172a";
   ctx.beginPath();
   ctx.moveTo(padL, padT + plotH);
   ctx.lineTo(padL + plotW, padT + plotH);
   ctx.stroke();
 
+  // eixo Y
   ctx.beginPath();
   ctx.moveTo(padL, padT);
   ctx.lineTo(padL, padT + plotH);
   ctx.stroke();
 
-  // linha zero
+  // linhas horizontais
+  ctx.globalAlpha = .18;
+  [minY, (minY + maxY) / 2, maxY].forEach(v => {
+    const y = Y(v);
+    ctx.beginPath();
+    ctx.moveTo(padL, y);
+    ctx.lineTo(padL + plotW, y);
+    ctx.stroke();
+  });
+
+  // linha zero, se existir negativo/positivo
   if (minY < 0 && maxY > 0){
     const yz = Y(0);
-    ctx.globalAlpha = .18;
+    ctx.globalAlpha = .28;
     ctx.lineWidth = 2 * dpr;
     ctx.beginPath();
     ctx.moveTo(padL, yz);
@@ -1301,70 +1391,95 @@ function drawLineChartSigned(canvas, series){
     ctx.stroke();
   }
 
-  // ==== LINHA ====
-  ctx.globalAlpha = .95;
-  ctx.lineWidth = 2.2 * dpr;
+  // labels eixo Y
+  ctx.globalAlpha = .75;
+  ctx.font = `${11*dpr}px system-ui, Arial`;
+  ctx.fillStyle = "#0f172a";
+  ctx.fillText(`${Math.round(minY)}`, 10*dpr, padT + plotH + 4*dpr);
+  ctx.fillText(`${Math.round((minY + maxY) / 2)}`, 10*dpr, padT + plotH / 2 + 4*dpr);
+  ctx.fillText(`${Math.round(maxY)}`, 10*dpr, padT + 4*dpr);
+
+  // linha do gráfico
+  ctx.globalAlpha = 1;
+  ctx.lineWidth = 3 * dpr;
+  ctx.strokeStyle = "#0f172a";
   ctx.beginPath();
-  series.forEach((p,i)=>{
-    const y = Y(Number(p[1]||0));
+  ys.forEach((v, i) => {
     const x = X(i);
-    if (i === 0) ctx.moveTo(x,y);
-    else ctx.lineTo(x,y);
+    const y = Y(v);
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
   });
   ctx.stroke();
 
-  // ==== PONTOS ====
+  // pontos
   ctx.globalAlpha = .95;
-  series.forEach((p,i)=>{
-    const y = Y(Number(p[1]||0));
+  ctx.fillStyle = "#0f172a";
+  ys.forEach((v, i) => {
     const x = X(i);
+    const y = Y(v);
     ctx.beginPath();
-    ctx.arc(x, y, 3.2*dpr, 0, Math.PI*2);
+    ctx.arc(x, y, 4 * dpr, 0, Math.PI * 2);
     ctx.fill();
   });
 
-  // ==== TOOLTIP (novo, mas leve) ====
-  const tooltip = document.createElement("div");
-  tooltip.style.position = "absolute";
-  tooltip.style.pointerEvents = "none";
-  tooltip.style.background = "#0f172a";
-  tooltip.style.color = "#fff";
-  tooltip.style.padding = "6px 10px";
-  tooltip.style.fontSize = "12px";
-  tooltip.style.borderRadius = "8px";
-  tooltip.style.fontWeight = "700";
-  tooltip.style.display = "none";
-  tooltip.style.whiteSpace = "nowrap";
+  // labels dos pontos com caixinha
+  ctx.font = `${11*dpr}px system-ui, Arial`;
 
-  canvas.parentElement.style.position = "relative";
-  canvas.parentElement.appendChild(tooltip);
+  ys.forEach((v, i) => {
+    const x = X(i);
+    const y = Y(v);
 
-  canvas.onmousemove = (e) => {
-    const rect = canvas.getBoundingClientRect();
-    const mouseX = (e.clientX - rect.left) * dpr;
+    const label = moneyBR(v);
+    const textW = ctx.measureText(label).width;
+    const boxPadX = 6 * dpr;
+    const boxPadY = 4 * dpr;
+    const boxH = 20 * dpr;
+    const boxW = textW + boxPadX * 2;
 
-    const index = Math.round((mouseX - padL) / xStep);
-    if (index < 0 || index >= series.length){
-      tooltip.style.display = "none";
-      return;
-    }
+    let tx = x - (boxW / 2);
+    if (tx < padL) tx = padL;
+    if (tx + boxW > w - padR) tx = w - padR - boxW;
 
-    const [date, value] = series[index];
-    const x = X(index) / dpr;
-    const y = Y(value) / dpr;
+    let ty = y - 28 * dpr;
+    if (ty < padT) ty = y + 10 * dpr;
 
-    tooltip.style.display = "block";
-    tooltip.style.left = `${x}px`;
-    tooltip.style.top = `${y - 28}px`;
-    tooltip.innerHTML = `
-      ${date}<br>
-      ${moneyBR(value)}
-    `;
-  };
+    ctx.globalAlpha = .96;
+    ctx.fillStyle = "#ffffff";
+    ctx.beginPath();
+    ctx.roundRect(tx, ty, boxW, boxH, 8 * dpr);
+    ctx.fill();
 
-  canvas.onmouseleave = () => {
-    tooltip.style.display = "none";
-  };
+    ctx.globalAlpha = .18;
+    ctx.strokeStyle = "#0f172a";
+    ctx.lineWidth = 1 * dpr;
+    ctx.stroke();
+
+    ctx.globalAlpha = .9;
+    ctx.fillStyle = "#0f172a";
+    ctx.fillText(label, tx + boxPadX, ty + 14 * dpr);
+  });
+
+  // datas verticais com ano
+  ctx.globalAlpha = .75;
+  ctx.font = `${10*dpr}px system-ui, Arial`;
+  ctx.fillStyle = "#475569";
+
+  series.forEach((item, i) => {
+    const day = String(item[0] || "");
+    const [year, month, date] = day.split("-");
+    const label = `${date}/${month}/${year}`;
+
+    const x = X(i);
+    const yBase = padT + plotH + 28 * dpr;
+
+    ctx.save();
+    ctx.translate(x, yBase);
+    ctx.rotate(-Math.PI / 2);
+    ctx.textAlign = "right";
+    ctx.fillText(label, 0, 0);
+    ctx.restore();
+  });
 }
 
   // ===== Vendas =====
@@ -1466,6 +1581,10 @@ document.getElementById("btnExportPDF").onclick = () => {
     const cust = sale.meta?.customer?.name ? ` • Cliente: ${sale.meta.customer.name}` : "";
     const cancelled = isCancelledSale(sale);
 
+    const cancelledInfo = cancelled
+      ? ` • <span style="color:#b91c1c;font-weight:900;">Venda cancelada</span>`
+      : "";
+
     return `
       <div class="r-row ${cancelled ? "is-cancelled-sale" : ""}" data-id="${sale.id || ""}">
         <div class="r-row-top">
@@ -1479,7 +1598,9 @@ document.getElementById("btnExportPDF").onclick = () => {
           ${cancelled ? `<span class="r-cancel-badge">Cancelado</span>` : ``}
         </div>
 
-        <div class="m">Usuário: <b>${sale.by || "—"}</b>${cust}</div>
+        <div class="m">
+          Usuário: <b>${sale.by || "—"}</b>${cust}${cancelledInfo}
+        </div>
       </div>
     `;
   }).join("");
@@ -1517,6 +1638,9 @@ const cancelledBadge = isCancelledSale(sale)
       margin-top:10px;
     ">
       Cancelado
+    </div>
+    <div style="margin-top:8px;color:#b91c1c;font-weight:900;font-size:12px;">
+      Esta venda foi cancelada e não deve entrar nos totais.
     </div>
   `
   : "";
@@ -1966,14 +2090,6 @@ draw();
             <input type="date" id="vdEnd" value="${endStr}">
           </div>
 
-          <div class="r-field">
-            <label>Excluir (DEV)</label>
-            <select id="vdExcludeDev">
-              <option value="yes" selected>Sim</option>
-              <option value="no">Não</option>
-            </select>
-          </div>
-
           <button class="r-btn primary" id="btnVdApply">Aplicar</button>
     <button class="r-btn" id="btnExportCSV">CSV</button>
 <button class="r-btn" id="btnExportPDF">PDF</button>
@@ -1988,14 +2104,9 @@ draw();
 
   const vdStart = document.getElementById("vdStart");
   const vdEnd = document.getElementById("vdEnd");
-  const vdExcludeDev = document.getElementById("vdExcludeDev");
   const btnVdApply = document.getElementById("btnVdApply");
   const vdList = document.getElementById("vdList");
 
-  function isDevUser(name){
-    const n = String(name || "").toLowerCase();
-    return n.includes("dev");
-  }
 
   async function draw(){
   try{
@@ -2006,11 +2117,20 @@ draw();
     saveReportRange(vdStart.value, vdEnd.value);
 
     const events = await loadCashEvents(s, e);
-    let sales = onlyActiveSales(events).filter(x => x.at && inRange(x.at, s, e));
 
-    if (vdExcludeDev.value === "yes"){
-      sales = sales.filter(x => !isDevUser(x.by));
-    }
+const cancelledSaleIds = await getCancelledSaleIdsInRange(
+  s.toISOString(),
+  e.toISOString()
+);
+
+const sales = onlyActiveSales(events).filter(x => {
+  if (!x.at || !inRange(x.at, s, e)) return false;
+
+  const saleKey = String(x.saleId || x.id || "").trim();
+  if (saleKey && cancelledSaleIds.has(saleKey)) return false;
+
+  return true;
+});
 
     const map = new Map(); // user -> {user,total,count}
     for (const sale of sales){
@@ -2063,8 +2183,22 @@ document.getElementById("btnExportPDF").onclick = () => {
     e.setHours(23,59,59,999);
 
     const events = await loadCashEvents(s, e);
-const salesAll = onlySales(events).filter(x => x.at && inRange(x.at, s, e));
-    const sales = salesAll.filter(x => (x.by || "—") === user);
+
+const cancelledSaleIds = await getCancelledSaleIdsInRange(
+  s.toISOString(),
+  e.toISOString()
+);
+
+const salesAll = onlyActiveSales(events).filter(x => {
+  if (!x.at || !inRange(x.at, s, e)) return false;
+
+  const saleKey = String(x.saleId || x.id || "").trim();
+  if (saleKey && cancelledSaleIds.has(saleKey)) return false;
+
+  return true;
+});
+
+const sales = salesAll.filter(x => (x.by || "—") === user);
 
     // somatórios de pagamentos (modelo CoreCash: objeto)
     const paySum = { cash:0, pix:0, cardCredit:0, cardDebit:0 };
@@ -2684,11 +2818,13 @@ async function renderEstoque(){
           <div class="r-field">
             <label>Tipo</label>
             <select id="eType">
-              <option value="all">Todos</option>
-              <option value="compra">Compras</option>
-              <option value="perda">Perdas</option>
-              <option value="ajuste">Ajustes</option>
-            </select>
+  <option value="all">Todos</option>
+  <option value="compra">Compras</option>
+  <option value="perda">Perdas</option>
+  <option value="ajuste">Ajustes</option>
+  <option value="venda">Vendas</option>
+  <option value="cancelado">Cancelados</option>
+</select>
           </div>
 
           <button class="r-btn primary" id="btnEApply">Aplicar</button>
@@ -2728,20 +2864,24 @@ async function renderEstoque(){
     return `<div style="font-weight:950;color:#94a3b8;">IMG</div>`;
   }
 
-  function moveColor(type){
-    if (type === "compra") return "#16a34a";
-    if (type === "perda") return "#ef4444";
-    if (type === "ajuste") return "#0ea5e9";
-    return "#0f172a";
-  }
+ function moveColor(type){
+  if (type === "compra") return "#16a34a";
+  if (type === "perda") return "#ef4444";
+  if (type === "ajuste") return "#0ea5e9";
+  if (type === "venda") return "#ef4444";
+  if (type === "cancelado") return "#dc2626";
+  return "#0f172a";
+}
 
   function signedText(type, qty){
-    const n = Number(qty || 0);
-    if (type === "compra") return `+${n}`;
-    if (type === "perda") return `-${n}`;
-    if (type === "ajuste") return `±${n}`;
-    return String(n);
-  }
+  const n = Math.abs(Number(qty || 0));
+  if (type === "compra") return `+${n}`;
+  if (type === "perda") return `-${n}`;
+  if (type === "ajuste") return `±${n}`;
+  if (type === "venda") return `-${n}`;
+  if (type === "cancelado") return `+${n}`;
+  return String(n);
+}
 
   async function draw(){
   try{
@@ -2758,10 +2898,6 @@ async function renderEstoque(){
         .lt("created_at", endISO)
         .order("created_at", { ascending: false });
 
-      if (selectedType !== "all"){
-        query = query.eq("move_type", selectedType);
-      }
-
       const { data, error } = await query;
 
 if (error){
@@ -2775,18 +2911,44 @@ const rawRows = Array.isArray(data) ? data : [];
 // busca ids das vendas canceladas no período
 const cancelledSaleIds = await getCancelledSaleIdsInRange(startISO, endISO);
 
-// remove:
-// 1) saída original da venda cancelada (ref = saleId cancelado)
-// 2) estorno da venda cancelada (normalmente com mesma ref ou nota de estorno)
-const rows = rawRows.filter((r) => {
-  const ref = String(r?.ref || "").trim();
-  const note = String(r?.note || "").toUpperCase();
+// regra:
+// 1) remove a saída original da venda que foi cancelada
+// 2) mantém o estorno e transforma ele em "cancelado"
+let rows = rawRows
+  .filter((r) => {
+    const ref = String(r?.ref || "").trim();
+    const note = String(r?.note || "").toUpperCase();
 
-  if (ref && cancelledSaleIds.has(ref)) return false;
-  if (note.includes("ESTORNO VENDA CANCELADA")) return false;
+    const isCancelledSaleOutput =
+      String(r?.move_type || "").toLowerCase() === "venda" &&
+      ref &&
+      cancelledSaleIds.has(ref);
 
-  return true;
-});
+    if (isCancelledSaleOutput) return false;
+
+    return true;
+  })
+  .map((r) => {
+    const note = String(r?.note || "").toUpperCase();
+
+    const isCancelReversal =
+      note.includes("ESTORNO VENDA CANCELADA") ||
+      note.includes("VENDA CANCELADA") ||
+      note.includes("CANCELAMENTO DE VENDA");
+
+    if (isCancelReversal) {
+      return {
+        ...r,
+        move_type: "cancelado"
+      };
+    }
+
+    return r;
+  });
+
+if (selectedType !== "all") {
+  rows = rows.filter((r) => String(r.move_type || "").toLowerCase() === selectedType);
+}
 
       const headers = ["Data", "Hora", "Tipo", "Produto", "SKU", "Qtd", "Obs"];
       const exportRows = rows.map(r => {
@@ -2825,43 +2987,95 @@ const rows = rawRows.filter((r) => {
       }
 
       eList.innerHTML = rows.map(r => {
-        const date = new Date(r.created_at);
-        const type = String(r.move_type || "").toLowerCase();
-        const color = moveColor(type);
+  const date = new Date(r.created_at);
+  const type = String(r.move_type || "").toLowerCase();
+  const color = moveColor(type);
 
-        return `
-          <div class="r-row" style="cursor:default;">
-            <div style="display:grid;grid-template-columns:56px 1fr auto;gap:12px;align-items:center;">
-              <div style="
-                width:56px;height:56px;border-radius:16px;overflow:hidden;
-                border:1px solid rgba(15,23,42,.08);
-                background:rgba(148,163,184,.14);
-                display:grid;place-items:center;
-              ">
-                ${thumb(r.product_image)}
-              </div>
+  let saleOperator = "";
+let stockBefore = "";
+let stockAfter = "";
 
-              <div style="min-width:0;">
-                <div class="t" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-                  <span style="color:${color};font-weight:950;text-transform:capitalize;">${type}</span>
-                  ${r.product_name ? ` • ${r.product_name}` : ` • Produto`}
-                </div>
+if (type === "venda" || type === "cancelado") {
+    const noteText = String(r.note || "");
 
-                <div class="m">
-                  SKU: <b>${r.product_sku || "—"}</b>
-                  • ${date.toLocaleDateString("pt-BR")}
-                  ${date.toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit" })}
-                  ${r.note ? ` • ${r.note}` : ""}
-                </div>
-              </div>
+    const byMatch =
+      noteText.match(/por\s+([^•|]+)/i) ||
+      noteText.match(/operador[:\s]+([^•|]+)/i) ||
+      noteText.match(/usu[aá]rio[:\s]+([^•|]+)/i);
 
-              <div style="font-weight:950;color:${color};white-space:nowrap;">
-                ${signedText(type, r.qty)}
-              </div>
-            </div>
+    const beforeMatch =
+      noteText.match(/antes[:\s]+(-?\d+(?:[.,]\d+)?)/i) ||
+      noteText.match(/estoque anterior[:\s]+(-?\d+(?:[.,]\d+)?)/i);
+
+    const afterMatch =
+      noteText.match(/depois[:\s]+(-?\d+(?:[.,]\d+)?)/i) ||
+      noteText.match(/estoque atual[:\s]+(-?\d+(?:[.,]\d+)?)/i) ||
+      noteText.match(/final[:\s]+(-?\d+(?:[.,]\d+)?)/i);
+
+    if (byMatch?.[1]) {
+      saleOperator = byMatch[1].trim();
+    }
+
+    if (beforeMatch?.[1]) {
+      stockBefore = beforeMatch[1].replace(",", ".");
+    }
+
+    if (afterMatch?.[1]) {
+      stockAfter = afterMatch[1].replace(",", ".");
+    }
+  }
+
+  const extraSaleInfo = (type === "venda" || type === "cancelado")
+  ? `
+    ${saleOperator ? ` • Por: <b>${saleOperator}</b>` : ""}
+    ${stockBefore !== "" ? ` • Antes: <b>${stockBefore}</b>` : ""}
+    ${stockAfter !== "" ? ` • Atual: <b>${stockAfter}</b>` : ""}
+  `
+  : "";
+
+  return `
+    <div class="r-row" style="
+  cursor:default;
+  ${type === "cancelado" ? "background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.18);" : ""}
+">
+      <div style="display:grid;grid-template-columns:56px 1fr auto;gap:12px;align-items:center;">
+        <div style="
+          width:56px;height:56px;border-radius:16px;overflow:hidden;
+          border:1px solid rgba(15,23,42,.08);
+          background:rgba(148,163,184,.14);
+          display:grid;place-items:center;
+        ">
+          ${thumb(r.product_image)}
+        </div>
+
+        <div style="min-width:0;">
+          <div class="t" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+            <span style="color:${color};font-weight:950;text-transform:capitalize;">
+  ${type === "cancelado" ? "cancelado" : type}
+</span>
+            ${r.product_name ? ` • ${r.product_name}` : ` • Produto`}
           </div>
-        `;
-      }).join("");
+
+          <div class="m" style="${type === "cancelado" ? "color:#b91c1c;font-weight:900;" : ""}">
+  SKU: <b>${r.product_sku || "—"}</b>
+  • ${date.toLocaleDateString("pt-BR")}
+  ${date.toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit" })}
+  ${extraSaleInfo}
+  ${r.note ? ` • ${r.note}` : ""}
+</div>
+        </div>
+
+<div style="
+  font-weight:950;
+  color:${type === "cancelado" ? "#16a34a" : color};
+  white-space:nowrap;
+">
+  ${signedText(type, r.qty)}
+</div>
+      </div>
+    </div>
+  `;
+}).join("");
 
     } catch(err){
       console.error("[ESTOQUE] erro draw:", err);

@@ -406,11 +406,26 @@ function mergeEventsLists(localEvents = [], remoteEvents = []) {
     return `sig:${eventFingerprint(evt)}`;
   }
 
-  [...remoteEvents, ...localEvents].forEach((evt) => {
+  // 1) entra remoto primeiro
+  (remoteEvents || []).forEach((evt) => {
     const key = buildKey(evt);
-    if (!map.has(key)) {
-      map.set(key, evt);
-    }
+    map.set(key, { ...evt });
+  });
+
+  // 2) local entra por cima do remoto, preservando cancelamento e flags locais
+  (localEvents || []).forEach((evt) => {
+    const key = buildKey(evt);
+    const prev = map.get(key) || {};
+
+    map.set(key, {
+      ...prev,
+      ...evt,
+
+      // preserva sempre o estado local de cancelamento
+      cancelledAt: evt?.cancelledAt || prev?.cancelledAt || null,
+      cancelledBy: evt?.cancelledBy || prev?.cancelledBy || null,
+      cancelReason: evt?.cancelReason || prev?.cancelReason || null
+    });
   });
 
   return Array.from(map.values()).sort((a, b) => {

@@ -13,6 +13,15 @@ window.CorePageModules.home = function () {
 
     let selectedDate = new Date();
 
+      function getCurrentRole() {
+    return String(window.CoreAuth?.getCurrentUser?.()?.role || "").toUpperCase();
+  }
+
+  function canViewHomePayables() {
+    const role = getCurrentRole();
+    return role !== "OPER" && role !== "ASSOP";
+  }
+
   function moneyBR(v) {
     const n = Number(v || 0);
     return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -656,62 +665,72 @@ function getPayableStatus(item) {
   }
 
   async function renderPayablesAlerts() {
-    const payablesSummary = document.getElementById("payablesAlertSummary");
-    const payablesList = document.getElementById("payablesAlertsList");
-    const payablesBadge = document.getElementById("payablesAlertsBadge");
+  const payablesCard = document.getElementById("payablesCard");
+  const payablesSummary = document.getElementById("payablesAlertSummary");
+  const payablesList = document.getElementById("payablesAlertsList");
+  const payablesBadge = document.getElementById("payablesAlertsBadge");
 
-    const { overdue, today, upcoming } = await getPayablesAlerts();
-    const total = overdue.length + today.length + upcoming.length;
+  if (!canViewHomePayables()) {
+    if (payablesCard) payablesCard.style.display = "none";
+    return;
+  }
 
-    if (payablesBadge) payablesBadge.textContent = String(total);
+  if (payablesCard) {
+    payablesCard.style.display = "";
+  }
 
-    if (payablesSummary) {
-      if (overdue.length) {
-        payablesSummary.textContent = `${overdue.length} vencida(s), ${today.length} vence(m) hoje`;
-      } else if (today.length) {
-        payablesSummary.textContent = `${today.length} conta(s) vence(m) hoje`;
-      } else if (upcoming.length) {
-        payablesSummary.textContent = `${upcoming.length} conta(s) vence(m) em até 7 dias`;
-      } else {
-        payablesSummary.textContent = "Nenhum vencimento próximo";
-      }
-    }
+  const { overdue, today, upcoming } = await getPayablesAlerts();
+  const total = overdue.length + today.length + upcoming.length;
 
-    if (payablesList) {
-      const items = [
-        ...overdue.map((p) => ({
-          title: getPayableTitle(p),
-          meta: `Vencimento: ${formatDateBR(new Date(getPayableDate(p)))} • ${moneyBR(getPayableAmount(p))}`,
-          pill: "VENCIDA",
-          kind: "danger"
-        })),
-        ...today.map((p) => ({
-          title: getPayableTitle(p),
-          meta: `Vence hoje • ${moneyBR(getPayableAmount(p))}`,
-          pill: "HOJE",
-          kind: "warn"
-        })),
-        ...upcoming.map((p) => ({
-          title: getPayableTitle(p),
-          meta: `Vencimento: ${formatDateBR(new Date(getPayableDate(p)))} • ${moneyBR(getPayableAmount(p))}`,
-          pill: "PRÓXIMA",
-          kind: "ok"
-        }))
-      ].slice(0, 8);
+  if (payablesBadge) payablesBadge.textContent = String(total);
 
-      payablesList.innerHTML = items.length
-        ? items.map((item) => `
-            <div class="alert-item">
-              <div class="alert-item-main">
-                <div class="alert-item-title">${item.title}</div>
-                <div class="alert-item-meta">${item.meta}</div>
-              </div>
-              <span class="alert-pill ${item.kind}">${item.pill}</span>
-            </div>
-          `).join("")
-        : `<div class="empty-state-inline">Nenhuma conta crítica no momento.</div>`;
+  if (payablesSummary) {
+    if (overdue.length) {
+      payablesSummary.textContent = `${overdue.length} vencida(s), ${today.length} vence(m) hoje`;
+    } else if (today.length) {
+      payablesSummary.textContent = `${today.length} conta(s) vence(m) hoje`;
+    } else if (upcoming.length) {
+      payablesSummary.textContent = `${upcoming.length} conta(s) vence(m) em até 7 dias`;
+    } else {
+      payablesSummary.textContent = "Nenhum vencimento próximo";
     }
   }
+
+  if (payablesList) {
+    const items = [
+      ...overdue.map((p) => ({
+        title: getPayableTitle(p),
+        meta: `Vencimento: ${formatDateBR(new Date(getPayableDate(p)))} • ${moneyBR(getPayableAmount(p))}`,
+        pill: "VENCIDA",
+        kind: "danger"
+      })),
+      ...today.map((p) => ({
+        title: getPayableTitle(p),
+        meta: `Vence hoje • ${moneyBR(getPayableAmount(p))}`,
+        pill: "HOJE",
+        kind: "warn"
+      })),
+      ...upcoming.map((p) => ({
+        title: getPayableTitle(p),
+        meta: `Vencimento: ${formatDateBR(new Date(getPayableDate(p)))} • ${moneyBR(getPayableAmount(p))}`,
+        pill: "PRÓXIMA",
+        kind: "ok"
+      }))
+    ].slice(0, 8);
+
+    payablesList.innerHTML = items.length
+      ? items.map((item) => `
+          <div class="alert-item">
+            <div class="alert-item-main">
+              <div class="alert-item-title">${item.title}</div>
+              <div class="alert-item-meta">${item.meta}</div>
+            </div>
+            <span class="alert-pill ${item.kind}">${item.pill}</span>
+          </div>
+        `).join("")
+      : `<div class="empty-state-inline">Nenhuma conta crítica no momento.</div>`;
+  }
+}
 
   function renderCustomersToday(sales) {
     const wrap = document.getElementById("customersTodayList");
