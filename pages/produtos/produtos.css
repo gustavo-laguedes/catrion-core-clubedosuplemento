@@ -1989,3 +1989,102 @@
     min-width: 520px;
   }
 }
+
+@media (max-width: 720px){
+  .products-table-wrap{
+    max-width: 100%;
+    overflow-x: auto !important;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .products-table,
+  .products-table thead,
+  .products-table tbody{
+    width: 1160px;
+    min-width: 1160px;
+    max-width: none;
+  }
+
+  .products-table thead tr,
+  .products-table tbody tr{
+    width: 1160px;
+    min-width: 1160px;
+    table-layout: fixed;
+  }
+
+  .products-table tbody{
+    overflow-x: visible !important;
+    overflow-y: auto;
+  }
+
+  .products-table th,
+  .products-table td{
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .products-table th:nth-child(1),
+  .products-table td:nth-child(1){
+    width: 64px;
+  }
+
+  .products-table th:nth-child(2),
+  .products-table td:nth-child(2){
+    width: 240px;
+  }
+
+  .products-table th:nth-child(3),
+  .products-table td:nth-child(3){
+    width: 130px;
+  }
+
+  .products-table th:nth-child(4),
+  .products-table td:nth-child(4),
+  .products-table th:nth-child(5),
+  .products-table td:nth-child(5){
+    width: 105px;
+  }
+
+  .products-table th:nth-child(6),
+  .products-table td:nth-child(6),
+  .products-table th:nth-child(7),
+  .products-table td:nth-child(7),
+  .products-table th:nth-child(8),
+  .products-table td:nth-child(8),
+  .products-table th:nth-child(9),
+  .products-table td:nth-child(9){
+    width: 90px;
+  }
+
+  .products-table th.actions,
+  .products-table td.actions{
+    width: 180px;
+    min-width: 180px;
+    max-width: 180px;
+    padding-left: 10px;
+    padding-right: 10px;
+    text-align: center;
+  }
+
+  .products-table td.actions{
+    overflow: visible;
+  }
+
+  .products-table td.name-cell{
+    white-space: normal;
+    overflow-wrap: anywhere;
+    line-height: 1.25;
+  }
+
+  .products-table td.actions .row-actions{
+    justify-content: center;
+    padding-left: 0;
+  }
+
+  .products-table td.actions .hint{
+    width: 150px;
+    margin-left: 0;
+  }
+}

@@ -114,27 +114,21 @@ function navigateFromSidebar(route, reportView = "") {
   window.CoreRouterState = window.CoreRouterState || {};
   window.CoreRouterState.reportsInitialView = reportView || "";
 
+  router.go(route);
+  setActiveSidebar(route);
+
   if (isMobileViewport()) {
     closeMobileMenu();
   }
-
-  router.go(route);
-  setActiveSidebar(route);
 }
 
-let lastSidebarPointerNavAt = 0;
-
-function handleSidebarRouteActivation(e, { fromPointer = false } = {}) {
+function handleSidebarRouteActivation(e) {
   const navBtn = e.target.closest(".sidebar-link[data-route]");
   if (!navBtn) return false;
 
   e.preventDefault();
   e.stopImmediatePropagation?.();
   e.stopPropagation();
-
-  if (fromPointer) {
-    lastSidebarPointerNavAt = Date.now();
-  }
 
   const route = navBtn.dataset.route;
   const reportView = navBtn.dataset.reportView || "";
@@ -144,27 +138,8 @@ function handleSidebarRouteActivation(e, { fromPointer = false } = {}) {
 }
 
 document.addEventListener("click", (e) => {
-  if (Date.now() - lastSidebarPointerNavAt < 700 && e.target.closest(".sidebar-link[data-route]")) {
-    return;
-  }
   handleSidebarRouteActivation(e);
 });
-
-const coreSidebarEl = document.querySelector(".core-sidebar");
-
-if (coreSidebarEl) {
-  if (window.PointerEvent) {
-    coreSidebarEl.addEventListener("pointerup", (e) => {
-      if (!isMobileViewport() || e.pointerType === "mouse") return;
-      handleSidebarRouteActivation(e, { fromPointer: true });
-    }, { passive: false });
-  } else {
-    coreSidebarEl.addEventListener("touchend", (e) => {
-      if (!isMobileViewport()) return;
-      handleSidebarRouteActivation(e, { fromPointer: true });
-    }, { passive: false });
-  }
-}
 
 // acessibilidade: Enter/Espaço no “logo”
 document.addEventListener("keydown", (e) => {
