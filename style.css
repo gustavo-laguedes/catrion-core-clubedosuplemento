@@ -3683,6 +3683,10 @@ body.is-login #app{
 
 /* Mobile interaction guard: sidebar opens only from the menu button state. */
 @media (max-width: 720px){
+  body.mobile-menu-open .core-shell{
+    z-index: auto;
+  }
+
   body:not(.mobile-menu-open) .core-sidebar,
   body.sidebar-pinned:not(.mobile-menu-open) .core-sidebar,
   body:not(.mobile-menu-open) .core-sidebar:hover{
@@ -3693,6 +3697,7 @@ body.is-login #app{
   body.mobile-menu-open .core-sidebar:hover,
   body.mobile-menu-open.sidebar-pinned .core-sidebar{
     transform: translateX(0) !important;
+    z-index: 90 !important;
   }
 
   body.sidebar-pinned:not(.mobile-menu-open)::after{
@@ -3702,5 +3707,6 @@ body.is-login #app{
 
   body.mobile-menu-open::after{
     pointer-events: auto;
+    z-index: 70;
   }
 }

@@ -137,6 +137,13 @@ function handleSidebarRouteActivation(e) {
   return true;
 }
 
+const coreSidebarEl = document.querySelector(".core-sidebar");
+
+coreSidebarEl?.addEventListener("click", (e) => {
+  if (!isMobileViewport()) return;
+  handleSidebarRouteActivation(e);
+}, true);
+
 document.addEventListener("click", (e) => {
   handleSidebarRouteActivation(e);
 });
