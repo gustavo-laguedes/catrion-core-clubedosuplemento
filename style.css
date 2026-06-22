@@ -3680,3 +3680,27 @@ body.is-login #app{
     height: min(42vh, 300px);
   }
 }
+
+/* Mobile interaction guard: sidebar opens only from the menu button state. */
+@media (max-width: 720px){
+  body:not(.mobile-menu-open) .core-sidebar,
+  body.sidebar-pinned:not(.mobile-menu-open) .core-sidebar,
+  body:not(.mobile-menu-open) .core-sidebar:hover{
+    transform: translateX(-100%) !important;
+  }
+
+  body.mobile-menu-open .core-sidebar,
+  body.mobile-menu-open .core-sidebar:hover,
+  body.mobile-menu-open.sidebar-pinned .core-sidebar{
+    transform: translateX(0) !important;
+  }
+
+  body.sidebar-pinned:not(.mobile-menu-open)::after{
+    content: none !important;
+    display: none !important;
+  }
+
+  body.mobile-menu-open::after{
+    pointer-events: auto;
+  }
+}

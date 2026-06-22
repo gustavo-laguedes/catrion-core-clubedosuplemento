@@ -442,15 +442,28 @@ function getPayableStatus(item) {
 
     if (!badge || !input || badge.dataset.bound === "1") return;
     badge.dataset.bound = "1";
+    input.setAttribute("tabindex", "-1");
+    input.setAttribute("aria-label", "Selecionar data do painel");
 
-    badge.addEventListener("click", () => {
+    function openNativeDatePicker() {
       input.value = toInputDateValue(selectedDate);
 
       if (typeof input.showPicker === "function") {
         input.showPicker();
       } else {
+        input.focus({ preventScroll: true });
         input.click();
       }
+    }
+
+    badge.addEventListener("click", () => {
+      openNativeDatePicker();
+    });
+
+    badge.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      openNativeDatePicker();
     });
 
     input.addEventListener("change", () => {
