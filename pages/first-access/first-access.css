@@ -288,3 +288,32 @@ body{
     font-size:16px;
   }
 }
+
+/* ===== MOBILE / PWA OVERRIDES ===== */
+
+@media (max-width: 720px){
+  .fa-page{
+    min-height: 100dvh;
+    padding:
+      max(18px, env(safe-area-inset-top))
+      max(14px, env(safe-area-inset-right))
+      max(18px, env(safe-area-inset-bottom))
+      max(14px, env(safe-area-inset-left));
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .fa-card{
+    max-width: 100%;
+  }
+
+  .fa-field input{
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 720px) and (orientation: landscape){
+  .fa-page{
+    align-items: flex-start;
+  }
+}

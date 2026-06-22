@@ -217,3 +217,38 @@ body.is-login #app{
     font-size:26px;
   }
 }
+
+/* ===== MOBILE / PWA OVERRIDES ===== */
+
+@media (max-width: 720px){
+  .login-page{
+    min-height: 100dvh;
+    padding:
+      max(18px, env(safe-area-inset-top))
+      max(14px, env(safe-area-inset-right))
+      max(18px, env(safe-area-inset-bottom))
+      max(14px, env(safe-area-inset-left));
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  body.is-login .core-main-area{
+    height: 100dvh !important;
+    min-height: 100dvh !important;
+  }
+
+  .login-panel,
+  .login-card{
+    max-width: 100%;
+  }
+
+  .login-field__input{
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 720px) and (orientation: landscape){
+  .login-page{
+    align-items: flex-start;
+  }
+}

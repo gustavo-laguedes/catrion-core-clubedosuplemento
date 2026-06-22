@@ -1925,3 +1925,193 @@ background: rgba(248,250,252,.86);
     min-height: 44px;
   }
 }
+
+/* ===== MOBILE / PWA OVERRIDES ===== */
+
+@media (max-width: 1024px){
+  .sale-stage,
+  .sale-header,
+  .sale-grid,
+  .sale-left,
+  .sale-right,
+  .cart-panel,
+  .search-box{
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .sale-grid,
+  .sale-header{
+    grid-template-columns: 1fr !important;
+  }
+
+  .customer-picker.header{
+    grid-column: auto;
+  }
+
+  .results,
+  .cart-list,
+  #customerModal .customer-list{
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .modal,
+  .core-modal-backdrop{
+    padding:
+      max(12px, env(safe-area-inset-top))
+      max(12px, env(safe-area-inset-right))
+      max(12px, env(safe-area-inset-bottom))
+      max(12px, env(safe-area-inset-left));
+  }
+
+  .modal-box,
+  .core-modal,
+  #customerModal .modal-box,
+  #customerModal .core-modal,
+  #customerModal .modal-content,
+  #customerModal .modal-card{
+    max-width: calc(100vw - 24px);
+    max-height: calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    overflow: auto;
+  }
+}
+
+@media (max-width: 720px){
+  .sale-stage{
+    gap: 12px;
+    padding-bottom: calc(154px + env(safe-area-inset-bottom)) !important;
+  }
+
+  .sale-title-row,
+  .venda-title-row{
+    flex-wrap: wrap;
+  }
+
+  .search-box{
+    gap: 8px;
+    padding: 10px;
+  }
+
+  .search-ico{
+    display: none;
+  }
+
+  .scan-btn,
+  .cust-clear,
+  .cust-add{
+    flex: 0 0 42px;
+  }
+
+  .result-row,
+  .cart-item,
+  .receipt-head,
+  .receipt-line,
+  .split-top,
+  .discount-row{
+    flex-wrap: wrap;
+  }
+
+  .result-side{
+    width: 100%;
+    min-width: 0;
+    grid-template-columns: 1fr;
+    justify-items: stretch;
+  }
+
+  .btn-add{
+    width: 100%;
+  }
+
+  .customer-row,
+  .customer-picker.header .customer-row,
+  .split-entry,
+  .receipt-item{
+    grid-template-columns: 1fr !important;
+  }
+
+  .cust-clear,
+  .cust-add{
+    width: 100%;
+  }
+
+  .cart-actions{
+    width: 100%;
+    justify-content: space-between;
+    flex-wrap: wrap;
+  }
+
+  .qty{
+    flex: 1 1 auto;
+    justify-content: space-between;
+  }
+
+  .sale-dock{
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    padding:
+      10px max(12px, env(safe-area-inset-right))
+      max(10px, env(safe-area-inset-bottom))
+      max(12px, env(safe-area-inset-left)) !important;
+    max-width: 100vw;
+  }
+
+  .dock-total{
+    flex: 1 1 100%;
+    order: -1;
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .dock-actions{
+    width: 100%;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .sale-dock .btn-soft,
+  .sale-dock .btn-primary{
+    width: 100%;
+    min-width: 0;
+  }
+
+  .modal-grid,
+  .pay-methods{
+    grid-template-columns: 1fr;
+  }
+
+  .modal-actions,
+  .sale-done .modal-actions{
+    flex-wrap: wrap;
+  }
+
+  .modal-actions > *,
+  .sale-done .modal-actions .btn,
+  #saleDoneBackdrop .modal-actions button{
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 720px) and (orientation: landscape){
+  .sale-stage{
+    padding-bottom: calc(110px + env(safe-area-inset-bottom)) !important;
+  }
+
+  .sale-dock{
+    min-height: 62px;
+  }
+
+  .dock-total{
+    flex: 0 1 auto;
+    order: 0;
+  }
+
+  .dock-total .dock-value{
+    font-size: 24px;
+  }
+
+  .dock-actions{
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}

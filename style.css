@@ -3490,3 +3490,193 @@ body.is-login #app{
     font-size: 20px;
   }
 }
+
+/* =========================================================
+   PWA / MOBILE SAFETY OVERRIDES
+   Escopo mobile/tablet para evitar overflow horizontal global.
+========================================================= */
+
+@media (max-width: 1024px){
+  html,
+  body,
+  .core-shell,
+  .core-main-area,
+  #app{
+    width: 100%;
+    max-width: 100%;
+  }
+
+  body{
+    min-width: 0;
+    overscroll-behavior-x: none;
+  }
+
+  #app{
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .core-overlay,
+  .core-modal-backdrop{
+    padding:
+      max(14px, env(safe-area-inset-top))
+      max(14px, env(safe-area-inset-right))
+      max(14px, env(safe-area-inset-bottom))
+      max(14px, env(safe-area-inset-left));
+  }
+
+  .core-modal,
+  .admin-users-modal,
+  .admin-user-form-modal,
+  .profile-modal,
+  .chat-modal,
+  .system-config{
+    max-width: calc(100vw - 24px) !important;
+    overflow: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .config-tabs,
+  .tabs,
+  .settings-item,
+  .list-item,
+  .modal-actions,
+  .chat-clear-actions,
+  .admin-users-head,
+  .profile-head{
+    flex-wrap: wrap;
+  }
+
+  .grid,
+  .grid-rates{
+    min-width: 0;
+  }
+}
+
+@media (max-width: 720px){
+  html,
+  body{
+    overflow-x: hidden;
+  }
+
+  body{
+    min-height: 100dvh;
+  }
+
+  .core-shell{
+    height: 100dvh;
+    min-height: 100dvh;
+  }
+
+  .topbar{
+    padding-left: max(8px, env(safe-area-inset-left));
+    padding-right: max(8px, env(safe-area-inset-right));
+    padding-top: env(safe-area-inset-top);
+    height: calc(var(--topbar-h) + env(safe-area-inset-top));
+    min-height: calc(var(--topbar-h) + env(safe-area-inset-top));
+    max-height: calc(var(--topbar-h) + env(safe-area-inset-top));
+  }
+
+  .core-shell{
+    grid-template-rows: calc(var(--topbar-h) + env(safe-area-inset-top)) 1fr;
+  }
+
+  .core-sidebar{
+    top: calc(var(--topbar-h) + env(safe-area-inset-top)) !important;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  body.mobile-menu-open::after,
+  body.sidebar-pinned::after{
+    inset: calc(var(--topbar-h) + env(safe-area-inset-top)) 0 0 0;
+  }
+
+  #app{
+    padding-left: max(12px, env(safe-area-inset-left));
+    padding-right: max(12px, env(safe-area-inset-right));
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+  }
+
+  .topbar-left,
+  .topbar-right{
+    min-width: 0;
+  }
+
+  .topbar-right{
+    flex-shrink: 0;
+  }
+
+  .topbar-logo-core,
+  .topbar-logo-store{
+    max-width: 96px;
+    object-fit: contain;
+  }
+
+  .divider{
+    display: none;
+  }
+
+  .core-modal,
+  .admin-users-modal,
+  .admin-user-form-modal,
+  .profile-modal,
+  .chat-modal,
+  .system-config{
+    width: calc(100vw - 16px - env(safe-area-inset-left) - env(safe-area-inset-right)) !important;
+    max-height: calc(100dvh - 16px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) !important;
+  }
+
+  .core-modal-head,
+  .config-header,
+  .chat-head,
+  .chat-clear-head,
+  .admin-users-head,
+  .profile-head{
+    align-items: flex-start;
+  }
+
+  .config-tabs,
+  .tabs{
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .tab,
+  .tab-btn{
+    min-width: max-content;
+  }
+
+  .settings-item,
+  .list-item{
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .settings-actions,
+  .actions{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-left: 0;
+  }
+
+  .settings-actions button,
+  .actions button{
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 720px) and (orientation: landscape){
+  .core-sidebar{
+    width: min(72vw, 320px) !important;
+  }
+
+  #app{
+    padding-top: 10px;
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+  }
+
+  .chat-list{
+    height: min(42vh, 300px);
+  }
+}

@@ -1269,3 +1269,156 @@
   margin-left:6px !important;
   margin-right:6px !important;
 }
+
+/* ===== MOBILE / PWA OVERRIDES ===== */
+
+@media (max-width: 1024px){
+  .contas-page,
+  .ap-shell,
+  .ap-panel,
+  .ap-filter-panel,
+  .ap-filter-panel-new,
+  .ap-filter-layout,
+  .ap-filter-layout-v2,
+  .ap-filter-layout-v3{
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .ap-top-grid,
+  .ap-grid-main,
+  .ap-filter-layout,
+  .ap-filter-layout-v2,
+  .ap-filter-layout-v3{
+    grid-template-columns: 1fr !important;
+  }
+
+  .ap-kpis-grid,
+  .ap-top-grid .ap-kpis-grid,
+  .ap-kpis-compact,
+  .ap-list-summary{
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .ap-finance-filters-row,
+  .ap-filter-top-row,
+  .ap-filter-bottom-grid,
+  .ap-actions-row,
+  .ap-period-actions,
+  .contas-hero-actions{
+    flex-wrap: wrap;
+  }
+
+  .r-modal,
+  .ap-cat-box{
+    max-height: calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    overflow: auto;
+  }
+}
+
+@media (max-width: 720px){
+  .contas-page{
+    padding: 4px 0 max(18px, env(safe-area-inset-bottom));
+  }
+
+  .small-title{
+    font-size: 28px;
+  }
+
+  .ap-kpis-grid,
+  .ap-top-grid .ap-kpis-grid,
+  .ap-kpis-compact,
+  .ap-list-summary,
+  .ap-insights-grid,
+  .ap-form .ap-grid,
+  .ap-row2,
+  .ap-parcela-row{
+    grid-template-columns: 1fr !important;
+  }
+
+  .ap-toolbar,
+  .ap-toolbar-clean,
+  .ap-toolbar-finance,
+  .ap-finance-filters-row,
+  .ap-filter-top-row,
+  .ap-filter-bottom-grid,
+  .ap-actions-row,
+  .ap-cal-actions,
+  .ap-cal-actions-inline{
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    width: 100%;
+  }
+
+  .ap-finance-filters-row > *,
+  .ap-finance-filters-row #apStatusFilter,
+  .ap-finance-filters-row .ap-multi-filter,
+  .ap-finance-filters-row #apCalMonthSelect,
+  .ap-finance-filters-row #apCalYearSelect,
+  .ap-finance-filters-row #apCalToday,
+  .ap-finance-filters-row #apCalClear{
+    width: 100% !important;
+    flex: 1 1 100%;
+  }
+
+  .ap-panel,
+  .ap-filter-panel,
+  .ap-filter-panel-new,
+  .ap-kpi-card,
+  .ap-cat-group{
+    border-radius: 18px;
+  }
+
+  .ap-row,
+  .ap-cat-group-head,
+  .ap-breakdown-top,
+  .ap-cal-foot,
+  .ap-modal-actions,
+  .r-modal-actions{
+    flex-wrap: wrap;
+  }
+
+  .ap-row{
+    grid-template-columns: 1fr !important;
+  }
+
+  .ap-row-actions,
+  .ap-paid-wrap{
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .ap-row-value,
+  .ap-breakdown-value,
+  .ap-cat-group-value{
+    text-align: left;
+    white-space: normal;
+  }
+
+  .ap-cat-dropdown{
+    left: 0;
+    right: auto;
+    width: min(100%, calc(100vw - 24px));
+  }
+
+  .r-overlay,
+  .ap-cat-manager{
+    padding:
+      max(12px, env(safe-area-inset-top))
+      max(12px, env(safe-area-inset-right))
+      max(12px, env(safe-area-inset-bottom))
+      max(12px, env(safe-area-inset-left));
+  }
+
+  .r-modal,
+  .ap-cat-box{
+    width: calc(100vw - 16px - env(safe-area-inset-left) - env(safe-area-inset-right));
+    max-height: calc(100dvh - 16px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  }
+
+  .r-modal-actions > *,
+  .ap-modal-actions > *,
+  .contas-hero-actions > *{
+    width: 100%;
+  }
+}

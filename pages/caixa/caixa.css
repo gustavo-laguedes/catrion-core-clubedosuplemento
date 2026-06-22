@@ -776,3 +776,97 @@ body.cash-scroll-lock{
     font-size: 24px;
   }
 }
+
+/* ===== MOBILE / PWA OVERRIDES ===== */
+
+@media (max-width: 1024px){
+  .caixa-page,
+  .cash-card,
+  .events-list,
+  .core-modal{
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .caixa-grid,
+  .status-kpis,
+  .pay-grid{
+    grid-template-columns: 1fr !important;
+  }
+
+  .core-modal-backdrop{
+    padding:
+      max(12px, env(safe-area-inset-top))
+      max(12px, env(safe-area-inset-right))
+      max(12px, env(safe-area-inset-bottom))
+      max(12px, env(safe-area-inset-left));
+  }
+
+  .core-modal{
+    max-height: calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    overflow: auto;
+  }
+}
+
+@media (max-width: 720px){
+  .caixa-page{
+    padding: 4px 0 max(18px, env(safe-area-inset-bottom));
+  }
+
+  .caixa-header h1{
+    font-size: 30px;
+  }
+
+  .caixa-actions,
+  .cash-actions,
+  .events-tools,
+  .modal-actions,
+  .admin-warning-actions,
+  .sale-cancel-banner,
+  .profit-row{
+    flex-wrap: wrap;
+  }
+
+  .caixa-actions > *,
+  .cash-actions > *,
+  .events-tools > *,
+  .modal-actions > *,
+  .admin-warning-actions > *{
+    flex: 1 1 100%;
+    width: 100%;
+  }
+
+  .events-list,
+  .sale-items{
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .event-row{
+    min-width: 560px;
+    grid-template-columns: 110px minmax(180px, 1fr) 110px auto !important;
+  }
+
+  .sale-item-row{
+    min-width: 520px;
+    grid-template-columns: 42px minmax(180px, 1fr) 90px 90px !important;
+  }
+
+  .sale-detail-grid{
+    grid-template-columns: 1fr !important;
+  }
+
+  .sale-cancel-banner{
+    align-items: flex-start;
+  }
+
+  .sale-cancel-chip,
+  .event-cancel-badge{
+    width: 100%;
+  }
+
+  .core-modal{
+    width: calc(100vw - 16px - env(safe-area-inset-left) - env(safe-area-inset-right)) !important;
+    max-height: calc(100dvh - 16px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) !important;
+  }
+}
